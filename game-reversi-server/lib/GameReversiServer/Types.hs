@@ -29,13 +29,13 @@ import Data.Function ((&))
 
 
 -- | 8 rows of board, A to H.
-newtype Board = Board { unBoard :: List }
+newtype Board = Board { unBoard :: [Int] }
   deriving (Show, Eq, FromJSON, ToJSON, Generic)
 
--- | Nullable boolean:   - null for empty cells;  - true for white cells;  - false for black cells. 
+-- | Nullable boolean:   - null for empty cells;  - true for white cells;  - false for black cells.
 newtype Cell = Cell Bool deriving (Show, Eq, FromJSON, ToJSON, Generic)
 
--- | 
+-- |
 data ErrorModel = ErrorModel
   { errorModelMsg :: Text -- ^ Brief description of the error.
   } deriving (Show, Eq, Generic)
@@ -45,9 +45,9 @@ instance FromJSON ErrorModel where
 instance ToJSON ErrorModel where
   toJSON = genericToJSON (removeFieldLabelPrefix False "errorModel")
 
--- | 
+-- |
 data Inline_response_200 = Inline_response_200
-  { inlineResponse200Token :: Text -- ^ Authorization token to be used with `Token` security definition. 
+  { inlineResponse200Token :: Text -- ^ Authorization token to be used with `Token` security definition.
   } deriving (Show, Eq, Generic)
 
 instance FromJSON Inline_response_200 where
@@ -55,10 +55,10 @@ instance FromJSON Inline_response_200 where
 instance ToJSON Inline_response_200 where
   toJSON = genericToJSON (removeFieldLabelPrefix False "inlineResponse200")
 
--- | 
+-- |
 data Inline_response_200_1 = Inline_response_200_1
-  { inlineResponse2001Players :: [User] -- ^ 
-  , inlineResponse2001Invitations :: [User] -- ^ 
+  { inlineResponse2001Players :: [User] -- ^
+  , inlineResponse2001Invitations :: [User] -- ^
   } deriving (Show, Eq, Generic)
 
 instance FromJSON Inline_response_200_1 where
@@ -66,9 +66,9 @@ instance FromJSON Inline_response_200_1 where
 instance ToJSON Inline_response_200_1 where
   toJSON = genericToJSON (removeFieldLabelPrefix False "inlineResponse2001")
 
--- | 
+-- |
 data Inline_response_200_2 = Inline_response_200_2
-  { inlineResponse2002Reply :: Text -- ^ 
+  { inlineResponse2002Reply :: Text -- ^
   } deriving (Show, Eq, Generic)
 
 instance FromJSON Inline_response_200_2 where
@@ -76,13 +76,13 @@ instance FromJSON Inline_response_200_2 where
 instance ToJSON Inline_response_200_2 where
   toJSON = genericToJSON (removeFieldLabelPrefix False "inlineResponse2002")
 
--- | 
+-- |
 data Inline_response_200_3 = Inline_response_200_3
-  { inlineResponse2003Status :: Text -- ^ Overall status of the game.   - turn/wait: your/rival's turn;  - win/lose: you win/lose;  - draw: nobody win, nobody lose, it's a draw.  - error: when you your opponent disconnects or timeouts. 
-  , inlineResponse2003Players :: Inline_response_200_3_players -- ^ 
-  , inlineResponse2003History :: UniqueLocations -- ^ 
-  , inlineResponse2003Board :: Board -- ^ 
-  , inlineResponse2003Available :: UniqueLocations -- ^ 
+  { inlineResponse2003Status :: Text -- ^ Overall status of the game.   - turn/wait: your/rival's turn;  - win/lose: you win/lose;  - draw: nobody win, nobody lose, it's a draw.  - error: when you your opponent disconnects or timeouts.
+  , inlineResponse2003Players :: Inline_response_200_3_players -- ^
+  , inlineResponse2003History :: UniqueLocations -- ^
+  , inlineResponse2003Board :: Board -- ^
+  , inlineResponse2003Available :: UniqueLocations -- ^
   } deriving (Show, Eq, Generic)
 
 instance FromJSON Inline_response_200_3 where
@@ -90,10 +90,10 @@ instance FromJSON Inline_response_200_3 where
 instance ToJSON Inline_response_200_3 where
   toJSON = genericToJSON (removeFieldLabelPrefix False "inlineResponse2003")
 
--- | 
+-- |
 data Inline_response_200_3_players = Inline_response_200_3_players
-  { inlineResponse2003PlayersWhite :: User -- ^ 
-  , inlineResponse2003PlayersBlack :: User -- ^ 
+  { inlineResponse2003PlayersWhite :: User -- ^
+  , inlineResponse2003PlayersBlack :: User -- ^
   } deriving (Show, Eq, Generic)
 
 instance FromJSON Inline_response_200_3_players where
@@ -101,9 +101,9 @@ instance FromJSON Inline_response_200_3_players where
 instance ToJSON Inline_response_200_3_players where
   toJSON = genericToJSON (removeFieldLabelPrefix False "inlineResponse2003Players")
 
--- | 
+-- |
 data Inline_response_200_4 = Inline_response_200_4
-  { inlineResponse2004Flipped :: UniqueLocations -- ^ 
+  { inlineResponse2004Flipped :: UniqueLocations -- ^
   } deriving (Show, Eq, Generic)
 
 instance FromJSON Inline_response_200_4 where
@@ -111,16 +111,16 @@ instance FromJSON Inline_response_200_4 where
 instance ToJSON Inline_response_200_4 where
   toJSON = genericToJSON (removeFieldLabelPrefix False "inlineResponse2004")
 
--- | 
+-- |
 newtype Location = Location Text deriving (Show, Eq, FromJSON, ToJSON, Generic)
 
--- | 
+-- |
 newtype UniqueLocations = UniqueLocations { unUniqueLocations :: Location }
   deriving (Show, Eq, FromJSON, ToJSON, Generic)
 
--- | 
+-- |
 data User = User
-  { userUsername :: Text -- ^ 
+  { userUsername :: Text -- ^
   } deriving (Show, Eq, Generic)
 
 instance FromJSON User where

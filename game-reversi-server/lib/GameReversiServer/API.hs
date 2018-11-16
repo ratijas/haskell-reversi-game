@@ -10,13 +10,14 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC
--fno-warn-unused-binds -fno-warn-unused-imports -fcontext-stack=328 #-}
+-fno-warn-unused-binds -fno-warn-unused-imports -freduction-depth=328 #-}
 
 module GameReversiServer.API
+  (
   -- * Client and Server
-  ( ServerConfig(..)
+    ServerConfig(..)
   , GameReversiServerBackend
-  , createGameReversiServerClient
+  -- , createGameReversiServerClient
   , runGameReversiServerServer
   , runGameReversiServerClient
   , runGameReversiServerClientWithManager
@@ -48,8 +49,6 @@ import Servant.API.Verbs (StdMethod(..), Verb)
 import Servant.Client (Scheme(Http), ServantError, client)
 import Servant.Common.BaseUrl (BaseUrl(..))
 import Web.HttpApiData
-
-
 
 
 -- For the form data code generation.
@@ -160,16 +159,16 @@ instance Monad GameReversiServerClient where
 instance MonadIO GameReversiServerClient where
   liftIO io = GameReversiServerClient (\_ _ -> liftIO io)
 
-createGameReversiServerClient :: GameReversiServerBackend GameReversiServerClient
-createGameReversiServerClient = GameReversiServerBackend{..}
-  where
-    ((coerce -> gameReversiStatusGet) :<|>
-     (coerce -> gameSurrenderPost) :<|>
-     (coerce -> gameTurnLocationPost) :<|>
-     (coerce -> sessionInvitationReplyUsernamePost) :<|>
-     (coerce -> sessionInviteUsernamePost) :<|>
-     (coerce -> sessionListGet) :<|>
-     (coerce -> sessionNewUsernamePost)) = client (Proxy :: Proxy GameReversiServerAPI)
+-- createGameReversiServerClient :: GameReversiServerBackend GameReversiServerClient
+-- createGameReversiServerClient = GameReversiServerBackend{..}
+--   where
+--     ((coerce -> gameReversiStatusGet) :<|>
+--      (coerce -> gameSurrenderPost) :<|>
+--      (coerce -> gameTurnLocationPost) :<|>
+--      (coerce -> sessionInvitationReplyUsernamePost) :<|>
+--      (coerce -> sessionInviteUsernamePost) :<|>
+--      (coerce -> sessionListGet) :<|>
+--      (coerce -> sessionNewUsernamePost)) = client (Proxy :: Proxy GameReversiServerAPI)
 
 -- | Run requests in the GameReversiServerClient monad.
 runGameReversiServerClient :: ServerConfig -> GameReversiServerClient a -> ExceptT ServantError IO a
