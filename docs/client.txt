@@ -1,0 +1,53 @@
+Work-flow for the game Reversi client-server interaction model.
+
+Client-side
+===========
+
+1. Create new session.
+2. Get list of on-line players. [1]
+
+3.a. Select other player to invite.
+3.a.a. Other player accepted invitation. [2]
+3.a.b. Other player rejected invitation. Return to #2.
+
+3.b.1. Received an invitation from other player.
+3.b.2.a. Accept the invitation.
+3.b.2.b. Reject the invitation. Return to #2.
+
+4. Start the game.
+5. Loop. Query server for the status, e.g.: whose current turn? what is on board?
+
+5.a.0. Game over.
+5.a.1. Display "You win", "You lose" or "It's a draw".
+5.a.2. Finish the game.
+5.a.3. Return to #2.
+
+5.b.0. My turn.
+5.b.1. Highlight possible moves.
+5.b.2. Wait for input.
+5.b.3.a. Make move.
+5.b.3.b.1. Surrender.
+5.b.3.b.2. Return to #2.
+
+5.b.4.a.0. Error, e.g.: Connectivity, Illegal move, Timeout.
+5.b.4.a.1. Finish the game.
+5.b.4.a.2. Return to #2.
+
+5.b.4.b.0. OK.
+5.b.4.b.1. Put a new disk where player made turn.  // TODO: animations
+5.b.4.b.2. Flip disks of the other player.         // TODO: animations
+5.b.4.b.3. Return to #5.
+
+5.c.0. Other player's turn.
+5.c.1. Wait N seconds.
+5.c.2. Return to #5.
+
+
+[1]: Getting list of on-line players available to battle is a repetitive task,
+because players may go off-line and come back on-line at any time.
+Also, this request returns any pending invitations, so check repeatedly as often
+as 1 second or so.
+
+[2]: Requesting an invitation is a synchronous action. Upon receiving one,
+player has 10 seconds to reply. If he fail to do so, invitation is considered
+rejected.

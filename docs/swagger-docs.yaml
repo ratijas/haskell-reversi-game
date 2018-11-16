@@ -1,0 +1,312 @@
+swagger: '2.0'
+
+info:
+  version: "1.0.0"
+  title: Game Reversi server API
+  license:
+    name: MIT
+    url: http://opensource.org/licenses/MIT
+
+schemes: [ http ]
+host: "reversi.ratijas.tk"
+basePath: "/"
+
+security:
+- Token: []
+securityDefinitions:
+  Token:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: >
+      Once obtained through /session/new/{username} method, token may be used in subsequent requests to
+      protected methods in the form of `Authorization: Token <your_token>` header.
+
+produces:
+- 'application/json'
+
+definitions:
+  ErrorModel:
+    type: object
+    required:
+    - msg
+    properties:
+      msg:
+        type: string
+        description: "Brief description of the error."
+
+  User:
+    type: object
+    required:
+    - username
+    properties:
+      username:
+        type: string
+
+  Location:
+    type: string
+    pattern: "[ABCDEFGH][12345678]"
+
+  UniqueLocations:
+    type: array
+    uniqueItems: true
+    items:
+      $ref: '#/definitions/Location'
+
+  Cell:
+    type: boolean
+    description: >
+      Nullable boolean:
+
+       - null for empty cells;
+       - true for white cells;
+       - false for black cells.
+
+  Board:
+    type: array
+    description: "8 rows of board, A to H."
+    maxItems: 8
+    minItems: 8
+    items:
+      type: array
+      description: "8 cells of board row, 1 to 8."
+      maxItems: 8
+      minItems: 8
+      items:
+        $ref: '#/definitions/Cell'
+
+responses:
+  NotFound:
+    description: "User not found, went off-line or already started a game."
+    schema:
+      $ref: '#/definitions/ErrorModel'
+
+  IllegalState:
+    description: "Not a good time"
+    schema:
+      $ref: '#/definitions/ErrorModel'
+
+paths:
+  /session/new/{username}:
+    post:
+      summary: "Log in as {username}"
+      # Override: this particular method does not require any top-level security scheme.
+      security: []
+      parameters:
+      - name: username
+        in: path
+        required: true
+        type: string
+        description: "Desired username to be displayed."
+      responses:
+        '200':
+          description: "Successfully logged in as {username}"
+          schema:
+            type: object
+            properties:
+              token:
+                type: string
+                description: >
+                  Authorization token to be used with `Token` security definition.
+        '409':
+          description: "Conflict. Username is already taken."
+
+  /session/list:
+    get:
+      summary: "Get all on-line players AND pending invitations"
+      description: >
+        This method does not work while game is on.
+      responses:
+        '200':
+          description: "OK"
+          schema:
+            type: object
+            required:
+            - players
+            - invitations
+            properties:
+              players:
+                type: array
+                items:
+                  $ref: '#/definitions/User'
+              invitations:
+                type: array
+                items:
+                  $ref: '#/definitions/User'
+          examples:
+            "Nobody's home":
+              players: []
+              invitations: []
+            "Someone's here":
+              players:
+              - username: "Mario"
+              - username: "Peach"
+              - username: "Bowser"
+              invitations: []
+            "Get invited to the party":
+              players:
+              - username: "Mario"
+              - username: "Peach"
+              - username: "Bowser"
+              invitations:
+              - username: "Bowser"
+              - username: "Mario"
+
+        '400':
+          $ref: '#/responses/IllegalState'
+
+  /session/invite/{username}:
+    post:
+      summary: "Invite other player"
+      description: >
+        Requesting an invitation is a synchronous action. Upon receiving one,
+        player has 10 seconds to reply. If he fail to do so, invitation is considered
+        rejected.
+      parameters:
+      - name: username
+        in: path
+        required: true
+        type: string
+        description: "Username of the invited player."
+      responses:
+        '200':
+          description: >
+            Invited player either accepted the invitation request or rejected/ignored it.
+
+            If reply is "accepted", the game shall begin,
+            and user is put into the game mode by the server.
+
+            If the reply is "rejected", keep looking for the rivals.
+          schema:
+            type: object
+            properties:
+              reply:
+                type: string
+                enum:
+                - "accepted"
+                - "rejected"
+        '404':
+          $ref: '#/responses/NotFound'
+
+  /session/invitation/{reply}/{username}/:
+    post:
+      summary: "Send reply to an invitation"
+      parameters:
+      - name: reply
+        in: path
+        required: true
+        type: string
+        description: "Reaction to an invitation."
+        enum:
+        - "accept"
+        - "reject"
+      - name: username
+        in: path
+        required: true
+        type: string
+        description: "Username of inviting player."
+      responses:
+        '200':
+          description: >
+            Synchronous reply was sent to the inviting player.
+
+            If reply is "accept", the game shall begin,
+            and user is put into the game mode by the server.
+
+            If reply is "reject", keep looking for the rivals.
+
+        '404':
+          $ref: '#/responses/NotFound'
+
+  /game/reversi/status:
+    get:
+      summary: "Current situation on board"
+      description: >
+        Get information about current status of the game, including:
+
+         - whose turn now
+         - who is playing white and who's black
+         - history of all turns
+         - whole board with discs
+         - available moves (if it's my turn now)
+      responses:
+        '200':
+          description: "OK"
+          schema:
+            type:
+              object
+            required:
+            - status
+            properties:
+              status:
+                type: string
+                description: >
+                  Overall status of the game.
+
+                   - turn/wait: your/rival's turn;
+                   - win/lose: you win/lose;
+                   - draw: nobody win, nobody lose, it's a draw.
+                   - error: when you your opponent disconnects or timeouts.
+                enum:
+                - "turn"
+                - "wait"
+                - "win"
+                - "lose"
+                - "draw"
+                - "error"
+              players:
+                type: object
+                required:
+                - white
+                - black
+                properties:
+                  white:
+                    $ref: '#/definitions/User'
+                  black:
+                    $ref: '#/definitions/User'
+              history:
+                $ref: '#/definitions/UniqueLocations'
+              board:
+                $ref: '#/definitions/Board'
+              available:
+                $ref: '#/definitions/UniqueLocations'
+        '400':
+          $ref: '#/responses/IllegalState'
+
+  /game/turn/{location}:
+    post:
+      summary: "Make turn"
+      parameters:
+      - name: location
+        in: path
+        required: true
+        type: string
+        description: >
+          This should be one of locations provided by server through
+          http://reversi.ratijas.tk/game/reversi/status#/available
+
+          Format is exactly like `#/definitions/Location`:
+            regex: "[ABCDEFGH][12345678]"
+      responses:
+        '200':
+          description: "OK"
+          schema:
+            type: object
+            properties:
+              flipped:
+                $ref: '#/definitions/UniqueLocations'
+        '403':
+          description: "Attempt to make put a disc in an illegal cell."
+        '400':
+          $ref: '#/responses/IllegalState'
+
+  /game/surrender:
+    post:
+      summary: "Surrender"
+      description: >
+        Finish the game by surrendering to the opponent.
+      responses:
+        '200':
+          description: "OK"
+        '400':
+          $ref: '#/responses/IllegalState'
