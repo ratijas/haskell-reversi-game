@@ -1,8 +1,4 @@
-resolver: lts-8.5
+resolver: lts-11.22
 extra-deps:
-- servant-0.9.1.1
-- servant-client-0.9.1.1
-- servant-server-0.9.1.1
-- http-api-data-0.3.5
 packages:
 - '.'

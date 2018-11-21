@@ -14,20 +14,48 @@ library
   hs-source-dirs:      lib
   exposed-modules:     GameReversiServer.API
                      , GameReversiServer.Types
-  ghc-options:         -Wall
+                     , GameReversiServer.Handlers
+                     , GameReversiServer.Authentication
+                     , GameReversiServer.Persist
+  ghc-options:       -Wall -fno-warn-unused-imports
   build-depends:       base
                      , aeson
-                     , text
+                     , bytestring
                      , containers
+                     , cookie
+                     , hedis
+                     , http-api-data
+                     , http-client
+                     , http-types
+                     , mtl
                      , network-uri
                      , servant
-                     , http-api-data
                      , servant-client
                      , servant-server
                      , servant
-                     , warp
+                     , text
+                     , time
                      , transformers
-                     , mtl
-                     , http-client
-                     , http-types
+                     , wai
+                     , warp
   default-language:    Haskell2010
+
+executable game-reversi-server-exe
+  main-is: Main.hs
+  other-modules:
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:    base >=4.7 && <5
+                  , game-reversi-server
+                  , optparse-applicative >= 0.13 && < 0.15
+                  -- ** Tutorial Servant
+                  , aeson
+                  , bytestring
+                  , directory
+                  , mtl
+                  , servant
+                  , servant-server
+                  , time
+                  , warp
+  default-language: Haskell2010
