@@ -16,6 +16,7 @@ library
                      , GameReversiServer.Types
                      , GameReversiServer.Handlers
                      , GameReversiServer.Authentication
+                     , GameReversiServer.Authentication.Token
                      , GameReversiServer.Persist
   ghc-options:       -Wall -fno-warn-unused-imports
   build-depends:       base

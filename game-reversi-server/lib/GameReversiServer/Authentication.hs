@@ -16,6 +16,7 @@ import           Control.Monad                    (guard)
 import           Control.Monad.IO.Class           (liftIO)
 import           Data.Aeson                       (ToJSON)
 import           Data.ByteString                  (ByteString)
+import qualified Data.ByteString     as B
 import qualified Data.List           as L
 import qualified Data.Map            as Map
 import           Data.Map                         (Map, fromList)
@@ -60,7 +61,7 @@ import Web.Cookie                       (parseCookies)
 
 import qualified Data.UUID                 as UUID
 import qualified GameReversiServer.Persist as Persist
-
+import qualified GameReversiServer.Authentication.Token as Token
 
 
 -- | private data that needs protection
@@ -235,17 +236,14 @@ tokenAuthHandler = mkAuthHandler handler
     handler req = either throw401 lookupUser $ do
       (header :: ByteString) <- maybeToEither "Missing Authorization header" $
         lookup "Authorization" $ requestHeaders req
-      (user, token) <- maybeToEither "Invalid token credentials" $
-        parseToken header
-      return (user, token)
+      (token :: ByteString) <- maybeToEither "Invalid Authorization header format" $
+        getToken header
+      (user, uuid) <- maybeToEither "Invalid token credentials" $
+        Token.fromBytes token
+      return (user, uuid)
 
-    parseToken :: ByteString -> Maybe (Text, UUID.UUID)
-    parseToken bytes = do
-      let (chunks :: [Text]) = T.splitOn ":" $ decodeUtf8 bytes
-      guard $ L.length chunks == 2
-      let [name, token] = chunks
-      uuid <- UUID.fromText token
-      return (name, uuid)
+    getToken :: ByteString -> Maybe ByteString
+    getToken = B.stripPrefix "Token "
 
     lookupUser :: (Text, UUID.UUID)  -> Handler Persist.User
     lookupUser (name, uuid) = do
