@@ -36,6 +36,7 @@ library
                      , text
                      , time
                      , transformers
+                     , uuid
                      , wai
                      , warp
   default-language:    Haskell2010
@@ -56,6 +57,7 @@ executable game-reversi-server-exe
                   , mtl
                   , servant
                   , servant-server
+                  , text
                   , time
                   , warp
   default-language: Haskell2010

@@ -51,6 +51,12 @@ import Servant.Server.Experimental.Auth ( AuthHandler
                                         )
 import Web.Cookie                       (parseCookies)
 
+
+import qualified Data.UUID as UUID ( UUID )
+import qualified GameReversiServer.Persist as Persist
+
+
+
 -- | private data that needs protection
 newtype PrivateData = PrivateData { ssshhh :: Text }
   deriving (Eq, Show, Generic)
@@ -180,3 +186,32 @@ genAuthApp = serveWithContext
   (Proxy :: Proxy AuthGenAPI)
   genAuthServerContext
   genAuthServer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- | Perform authentication of user against the database
+authenticateUser
+  :: Text      -- ^ Username
+  -> UUID.UUID -- ^ Authentication token as UUID
+  -> IO Bool
+authenticateUser username token = do
+  (m :: Maybe Persist.User) <- Persist.loadUser username
+  case m of Nothing   -> return False
+            Just user -> return $
+              (Persist.token user) == token

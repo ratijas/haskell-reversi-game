@@ -1,75 +1,105 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module GameReversiServer.Persist
   (
     User( User )
-  , nickname, score
+  , username
+  , token
+  , createUserIfNotExist
   , loadUser
-  , storeUser
   ) where
 
-import           Control.Monad          (liftM)
-import           Control.Monad.IO.Class (liftIO)
-import           Text.Read              (readMaybe)
+import           Control.Monad          ( guard, liftM )
+import           Control.Monad.IO.Class ( liftIO )
 import           GHC.Generics           ( Generic )
 import           Data.Aeson             ( ToJSON
                                         , FromJSON
+                                        , toJSON
+                                        , parseJSON
                                         , encode
                                         , decodeStrict'
+                                        , Value ( Object )
+                                        , object
+                                        , (.=)
+                                        , (.:)
                                         )
-import qualified Data.ByteString               as B
-import qualified Data.ByteString.Lazy          as BL
-import qualified Data.ByteString.Char8         as C8
-import           Data.ByteString.Char8  ( ByteString
-                                        , pack
-                                        , unpack)
+import           Data.Aeson.Types       ( typeMismatch )
+
+import           Data.Text              ( Text )
+import qualified Data.Text as T
+import           Data.Text.Encoding     ( decodeUtf8, encodeUtf8 )
+import           Data.ByteString        ( ByteString )
+import qualified Data.ByteString      as B
+import qualified Data.ByteString.Lazy as BL (
+                                          toStrict
+                                        , fromStrict
+                                        )
+
 import           Database.Redis         ( Connection
                                         , Reply
                                         , runRedis
-                                        , set
-                                        , get
+                                        , hget
+                                        , hsetnx
                                         , checkedConnect
                                         , defaultConnectInfo
                                         )
+import qualified Data.UUID    as UUID ( UUID, toByteString, fromByteString )
+import qualified Data.UUID.V4 as UUID ( nextRandom )
+import qualified GameReversiServer.Types as Types
 
 
-data User = User { nickname :: String -- ^ User identifier
-                 , score :: Int       -- ^ In-game score
-                 }
-                 deriving Generic
-instance ToJSON User
-instance FromJSON User
+data User = User
+  { username :: Text      -- ^ Non-empty username
+  , token    :: UUID.UUID -- ^ UUID v4 token
+  }
 
 -- | Connect to Redis server
 getConnection :: IO Connection
 getConnection = checkedConnect defaultConnectInfo
 
 -- | Compose user key for Redis
-userKey :: String -> ByteString
-userKey name = pack ("user:" ++ name)
+userKey :: Text -> ByteString
+userKey name = encodeUtf8 (T.append "user:" name)
+
+
+err :: IO b
+err = fail "Redis error"
+
+constErr :: a -> IO b
+constErr = const $ err
+
+
+-- | Try to create new user with given username, return Nothing if one already exist.
+createUserIfNotExist :: Text -> IO (Maybe User)
+createUserIfNotExist (T.uncons -> Nothing) = return Nothing
+createUserIfNotExist name = do
+  conn <- getConnection
+  uuid <- UUID.nextRandom
+  let tok :: ByteString = BL.toStrict $ UUID.toByteString uuid
+  (reply :: Either Reply Bool) <- runRedis conn $ do
+    -- Hash set if not exist (key, field, value)
+    hsetnx (userKey name) "token" tok
+  (inserted :: Bool) <- either constErr return reply
+  return $ if inserted then Just $ User name uuid
+                       else Nothing
+
 
 -- | Load user from a Redis database
-loadUser :: String -> IO (Maybe User)
+loadUser
+  :: Text            -- ^ username
+  -> IO (Maybe User)
 loadUser name = do
   conn <- getConnection
-  runRedis conn $ do
-    userEither <- get (userKey name) -- :: Either Reply (Maybe ByteString)
-    return $ responseToUser userEither
-  where
-    responseToUser :: Either Reply (Maybe ByteString) -> Maybe User
-    responseToUser (Right (Just bytes)) = bytesToUser bytes
-    responseToUser _ = Nothing
-
-    bytesToUser :: ByteString -> Maybe User
-    bytesToUser bytes = do
-      user <- decodeStrict' bytes
-      return user
-
--- | Store user to a Redis database
-storeUser :: User -> IO ()
-storeUser user = do
-  conn <- getConnection
-  runRedis conn $ do
-    _ <- set (userKey (nickname user)) (BL.toStrict (encode user))
-    return ()
+  (reply :: Either Reply (Maybe ByteString)) <- runRedis conn $ do
+    -- Hash get (key, field)
+    hget (userKey name) "token"
+  (m :: Maybe ByteString) <- either constErr return reply
+  case m of
+    Nothing  -> return Nothing
+    Just tok -> do
+      (uuid :: UUID.UUID) <- maybe (fail "Invalid UUID in database") return $
+        UUID.fromByteString (BL.fromStrict tok)
+      return $ Just $ User name uuid

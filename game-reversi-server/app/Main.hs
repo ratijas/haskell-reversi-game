@@ -6,18 +6,16 @@
 
 module Main (main) where
 
-import GameReversiServer.API
-  (
-  --  runGameReversiServerServer
-    GameReversiServerBackend(..)
-  , ServerConfig(..)
-  , toWarpSettings
-  )
+import           GameReversiServer.API ( ServerConfig (..)
+                                       , GameReversiServerAPI
+                                       , toWarpSettings
+                                       )
 import qualified GameReversiServer.Authentication as Auth
--- import GameReversiServer.Types
--- import GameReversiServer.Handlers
-import qualified GameReversiServer.Persist as Persist
+import qualified GameReversiServer.Types          as Types
+import qualified GameReversiServer.Handlers       as Handlers
+import qualified GameReversiServer.Persist        as Persist
 
+import Data.Text (Text)
 import Data.Monoid ((<>))
 import Control.Applicative ((<$>), (<*>))
 import Options.Applicative
@@ -435,31 +433,21 @@ serverFor = error "..."
 
 
 
--- * Persistance
-
-type PersistanceAPI = "load" :> Capture "name" String :> Get '[JSON] Persist.User
-                 :<|> "store" :> Capture "name" String :> Capture "score" Int :> PostNoContent '[JSON] NoContent
 
 
-persistanceServer :: Server PersistanceAPI
-persistanceServer = load :<|> store
-  where
-    load :: String -> Handler Persist.User
-    load name = do
-      maybeUser <- liftIO $ Persist.loadUser name
-      case maybeUser of Nothing -> throwError err404 { errBody = "User not found" }
-                        Just user -> return user
-
-    store :: String -> Int -> Handler NoContent
-    store name score = do
-        let user = Persist.User name score
-        _ <- liftIO $ Persist.storeUser user
-        return NoContent
-
-persistanceApp :: Application
-persistanceApp = serve (Proxy :: Proxy PersistanceAPI) persistanceServer
 
 
+
+
+
+
+
+
+reversiServer :: Server GameReversiServerAPI
+reversiServer = Handlers.sessionNew
+
+reversiApplication :: Application
+reversiApplication = serve (Proxy :: Proxy GameReversiServerAPI) reversiServer
 
 
 
@@ -469,18 +457,7 @@ main :: IO ()
 main = do
   config <- parseArguments
   let settings = toWarpSettings config
-  Warp.runSettings settings persistanceApp
-  -- runGameReversiServerServer config server
-  -- where
-  --   server = GameReversiServerBackend {
-  --       gameReversiStatusGet = gameReversiStatusGetHandler
-  --     , gameSurrenderPost = gameSurrenderPostHandler
-  --     , gameTurnLocationPost = gameTurnLocationPostHandler
-  --     , sessionInvitationReplyUsernamePost = sessionInvitationReplyUsernamePostHandler
-  --     , sessionInviteUsernamePost = sessionInviteUsernamePostHandler
-  --     , sessionListGet = sessionListGetHandler
-  --     , sessionNewUsernamePost = sessionNewUsernamePostHandler
-  --   }
+  Warp.runSettings settings reversiApplication
 
 -- | Parse host and port from the command line arguments.
 parseArguments :: IO ServerConfig
