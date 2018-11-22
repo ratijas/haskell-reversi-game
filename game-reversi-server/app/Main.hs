@@ -29,7 +29,7 @@ import Data.List (intercalate)
 import Data.Aeson (Value, FromJSON(..), ToJSON(..), genericToJSON, genericParseJSON)
 import Data.Time.Calendar (Day, fromGregorian)
 import qualified Network.Wai.Handler.Warp as Warp
-import Servant (Application, Server, serve, serveDirectoryWebApp)
+import Servant (Application, Server, serve, serveWithContext, serveDirectoryWebApp)
 import Servant.API
 import Servant.Server (Handler, ServantErr(..), err404, err503)
 import System.Directory (doesFileExist)
@@ -446,9 +446,12 @@ serverFor = error "..."
 reversiServer :: Server GameReversiServerAPI
 reversiServer = Handlers.sessionNew
 
-reversiApplication :: Application
-reversiApplication = serve (Proxy :: Proxy GameReversiServerAPI) reversiServer
 
+reversiApplication :: Application
+reversiApplication = serveWithContext
+  (Proxy :: Proxy GameReversiServerAPI)
+  Auth.reversiServerContext
+  reversiServer
 
 
 -- * End of Servant tutorial

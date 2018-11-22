@@ -64,18 +64,3 @@ toWarpSettings config =
   Warp.defaultSettings
     & Warp.setPort (configPort config)
     & Warp.setHost (fromString (configHost config))
-
--- -- | Run the GameReversiServer server at the provided host and port.
--- runGameReversiServerServer :: MonadIO m => ServerConfig -> GameReversiServerBackend (ExceptT ServantErr IO)  -> m ()
--- runGameReversiServerServer ServerConfig{..} backend =
---   liftIO $ Warp.runSettings warpSettings $ serve (Proxy :: Proxy GameReversiServerAPI) (serverFromBackend backend)
---   where
---     warpSettings = Warp.defaultSettings & Warp.setPort configPort & Warp.setHost (fromString configHost)
---     serverFromBackend GameReversiServerBackend{..} =
---       (coerce gameReversiStatusGet :<|>
---        coerce gameSurrenderPost :<|>
---        coerce gameTurnLocationPost :<|>
---        coerce sessionInvitationReplyUsernamePost :<|>
---        coerce sessionInviteUsernamePost :<|>
---        coerce sessionListGet :<|>
---        coerce sessionNewUsernamePost)

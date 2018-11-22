@@ -8,22 +8,28 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module GameReversiServer.Authentication where
 
-import Data.Aeson                       (ToJSON)
-import Data.ByteString                  (ByteString)
-import Data.Map                         (Map, fromList)
-import Data.Monoid                      ((<>))
+import           Control.Monad                    (guard)
+import           Control.Monad.IO.Class           (liftIO)
+import           Data.Aeson                       (ToJSON)
+import           Data.ByteString                  (ByteString)
+import qualified Data.List           as L
 import qualified Data.Map            as Map
-import Data.Proxy                       (Proxy (Proxy))
-import Data.Text                        (Text)
-import Data.Typeable
-import GHC.Generics                     (Generic)
-import Network.Wai                      (Request, requestHeaders)
-import Network.Wai.Handler.Warp         (run)
-import Servant                          (throwError)
-import Servant.Server                   ( Application
+import           Data.Map                         (Map, fromList)
+import           Data.Monoid                      ((<>))
+import           Data.Proxy                       (Proxy (Proxy))
+import qualified Data.Text           as T
+import           Data.Text                        (Text)
+import           Data.Text.Encoding               ( decodeUtf8 )
+import           Data.Typeable
+import           GHC.Generics                     (Generic)
+import           Network.Wai                      (Request, requestHeaders)
+import           Network.Wai.Handler.Warp         (run)
+import           Servant                          (throwError)
+import           Servant.Server                   ( Application
                                         , BasicAuthCheck ( BasicAuthCheck )
                                         , BasicAuthResult( Authorized
                                                          , Unauthorized
@@ -52,7 +58,7 @@ import Servant.Server.Experimental.Auth ( AuthHandler
 import Web.Cookie                       (parseCookies)
 
 
-import qualified Data.UUID as UUID ( UUID )
+import qualified Data.UUID                 as UUID
 import qualified GameReversiServer.Persist as Persist
 
 
@@ -70,7 +76,7 @@ newtype PublicData = PublicData { somedata :: Text }
 instance ToJSON PublicData
 
 -- | A user we'll grab from the database when we authenticate someone
-newtype User = User { userName :: Text }
+newtype User = User { username :: Text }
   deriving (Eq, Show)
 
 -- | a type to wrap our public api
@@ -92,8 +98,8 @@ basicAuthApi = Proxy
 authCheck :: BasicAuthCheck User
 authCheck =
   let user :: BasicAuthData -> IO (BasicAuthResult User)
-      user (BasicAuthData username password) =
-        if username == "servant" && password == "server"
+      user (BasicAuthData name password) =
+        if name == "servant" && password == "server"
         then return (Authorized (User "servant"))
         else return Unauthorized
   in BasicAuthCheck user
@@ -109,7 +115,7 @@ basicAuthServer :: Server BasicAPI
 basicAuthServer =
   let
     publicAPIHandler = return [PublicData "foo", PublicData "bar"]
-    privateAPIHandler (user :: User) = return (PrivateData (userName user))
+    privateAPIHandler (user :: User) = return (PrivateData (username user))
   in publicAPIHandler :<|> privateAPIHandler
 
 
@@ -209,9 +215,50 @@ genAuthApp = serveWithContext
 authenticateUser
   :: Text      -- ^ Username
   -> UUID.UUID -- ^ Authentication token as UUID
-  -> IO Bool
-authenticateUser username token = do
-  (m :: Maybe Persist.User) <- Persist.loadUser username
-  case m of Nothing   -> return False
-            Just user -> return $
-              (Persist.token user) == token
+  -> IO (Maybe Persist.User)
+authenticateUser name token = do
+  (m :: Maybe Persist.User) <- Persist.loadUser name
+  -- if user if loaded AND tokens are equal, then return User, otherwise return nothing.
+  return $ case m of Just user@Persist.User { Persist.token = t } | t == token -> Just user
+                     _                                                         -> Nothing
+
+
+-- | Token authentication via `Authorization: Token <...>` header.
+tokenAuthHandler :: AuthHandler Request Persist.User
+tokenAuthHandler = mkAuthHandler handler
+  where
+    throw401 msg = throwError $ err401 { errBody = msg }
+    throw403 msg = throwError $ err403 { errBody = msg }
+    maybeToEither e = maybe (Left e) Right
+
+    handler req = either throw401 lookupUser $ do
+      (header :: ByteString) <- maybeToEither "Missing Authorization header" $
+        lookup "Authorization" $ requestHeaders req
+      (user, token) <- maybeToEither "Invalid token credentials" $
+        parseToken header
+      return (user, token)
+
+    parseToken :: ByteString -> Maybe (Text, UUID.UUID)
+    parseToken bytes = do
+      let (chunks :: [Text]) = T.splitOn ":" $ decodeUtf8 bytes
+      guard $ L.length chunks == 2
+      let [name, token] = chunks
+      uuid <- UUID.fromText token
+      return (name, uuid)
+
+    lookupUser :: (Text, UUID.UUID)  -> Handler Persist.User
+    lookupUser (name, uuid) = do
+      authenticated <- liftIO $ authenticateUser name uuid
+      case authenticated of
+        Nothing   -> throw403 "Invalid credentials"
+        Just user -> return user
+
+-- | We need to specify the data returned after authentication
+type instance AuthServerData (AuthProtect "token") = Persist.User
+
+
+-- | The context that will be made available to request handlers. We supply the
+-- "token"-tagged request handler defined above, so that the 'HasServer' instance
+-- of 'AuthProtect' can extract the handler and run it on the request.
+reversiServerContext :: Context (AuthHandler Request Persist.User ': '[])
+reversiServerContext = tokenAuthHandler :. EmptyContext
