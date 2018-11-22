@@ -218,7 +218,7 @@ paths:
         '404':
           $ref: '#/responses/NotFound'
 
-  /game/reversi/status:
+  /game/status:
     get:
       summary: "Current situation on board"
       description: >
@@ -283,7 +283,7 @@ paths:
         type: string
         description: >
           This should be one of locations provided by server through
-          http://reversi.ratijas.tk/game/reversi/status#/available
+          http://reversi.ratijas.tk/game/status#/available
 
           Format is exactly like `#/definitions/Location`:
             regex: "[ABCDEFGH][12345678]"
