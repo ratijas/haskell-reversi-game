@@ -219,8 +219,9 @@ authenticateUser
 authenticateUser name token = do
   (m :: Maybe Persist.User) <- Persist.loadUser name
   -- if user if loaded AND tokens are equal, then return User, otherwise return nothing.
-  return $ case m of Just user@Persist.User { Persist.token = t } | t == token -> Just user
-                     _                                                         -> Nothing
+  return $ case m of
+    Just user@Persist.User { Persist.token = t } | t == token -> Just user
+    _                                                         -> Nothing
 
 
 -- | Token authentication via `Authorization: Token <...>` header.
