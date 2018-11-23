@@ -18,6 +18,7 @@ module GameReversiServer.API (
   ) where
 
 import GameReversiServer.Types
+import GameReversiServer.Authentication as A
 
 import Control.Monad.Except (ExceptT)
 import Control.Monad.IO.Class
@@ -44,6 +45,8 @@ import Web.HttpApiData
 -- | Servant type-level API, generated from the Swagger spec for GameReversiServer.
 type GameReversiServerAPI
     =    "session" :> "new" :> Capture "username" Text :> Post '[JSON] ResponseSessionNew -- 'POST /session/new/{username}' route
+    :<|> A.TokenAuth :> "session" :> "check" :> Get '[JSON] ResponseSessionCheck  -- 'GET /session/check' route
+      -- :<|>
     -- :<|> "session" :> "list" :> Verb 'GET 200 '[JSON] Inline_response_200_1 -- 'sessionListGet' route
     -- :<|> "session" :> "invite" :> Capture "username" Text :> Verb 'POST 200 '[JSON] Inline_response_200_2 -- 'sessionInviteUsernamePost' route
     -- :<|> "session" :> "invitation" :> Capture "reply" Text :> Capture "username" Text :> Verb 'POST 200 '[JSON] () -- 'sessionInvitationReplyUsernamePost' route

@@ -444,7 +444,9 @@ serverFor = error "..."
 
 
 reversiServer :: Server GameReversiServerAPI
-reversiServer = Handlers.sessionNew
+reversiServer
+  =    Handlers.sessionNew
+  :<|> ( Handlers.sessionCheck )
 
 
 reversiApplication :: Application

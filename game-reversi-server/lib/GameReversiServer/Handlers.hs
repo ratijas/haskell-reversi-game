@@ -2,6 +2,7 @@
 
 module GameReversiServer.Handlers (
   sessionNew,
+  sessionCheck,
   sessionList,
   sessionInvite,
   sessionInvitationReply,
@@ -65,6 +66,9 @@ sessionNew username = do
     ok = return . Types.ResponseSessionNew . E.decodeUtf8 . Token.fromUser
     err = throwError $ err409
       { errBody = "Conflict. Username is already taken." }
+
+sessionCheck :: Persist.User -> Handler Types.ResponseSessionCheck
+sessionCheck _ = return $ Types.ResponseSessionCheck True
 
 sessionList :: ()
 sessionList = ()

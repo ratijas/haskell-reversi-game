@@ -14,7 +14,7 @@ module GameReversiServer.Types (
   locationFromXY,
 
   ResponseSessionNew (..),
-
+  ResponseSessionCheck (..),
 
 
 
@@ -117,9 +117,18 @@ newtype ResponseSessionNew = ResponseSessionNew
   } deriving (Show, Eq, Generic)
 instance FromJSON ResponseSessionNew where
   parseJSON = genericParseJSON (removeFieldLabelPrefix "responseSessionNew_")
-instance ToJSON ResponseSessionNew where
+instance ToJSON   ResponseSessionNew where
   toJSON    = genericToJSON    (removeFieldLabelPrefix "responseSessionNew_")
 
+-- | Check session. This response should be protected by authenticating endpoint,
+-- so field "ok" will always be True.
+newtype ResponseSessionCheck = ResponseSessionCheck
+  { responseSessionCheck_ok :: Bool
+  } deriving (Show, Eq, Generic)
+instance FromJSON ResponseSessionCheck where
+  parseJSON = genericParseJSON (removeFieldLabelPrefix "responseSessionCheck_")
+instance ToJSON   ResponseSessionCheck where
+  toJSON    = genericToJSON    (removeFieldLabelPrefix "responseSessionCheck_")
 
 
 

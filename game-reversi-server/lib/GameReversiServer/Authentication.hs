@@ -252,8 +252,15 @@ tokenAuthHandler = mkAuthHandler handler
         Nothing   -> throw403 "Invalid credentials"
         Just user -> return user
 
+
+
+
+
+-- | Custom Authentication scheme based on special token inside `Authorization` HTTP header.
+type TokenAuth = AuthProtect "token"
+
 -- | We need to specify the data returned after authentication
-type instance AuthServerData (AuthProtect "token") = Persist.User
+type instance AuthServerData TokenAuth = Persist.User
 
 
 -- | The context that will be made available to request handlers. We supply the
