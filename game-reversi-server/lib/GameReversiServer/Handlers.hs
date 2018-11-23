@@ -13,7 +13,7 @@ module GameReversiServer.Handlers (
 import           Control.Monad.IO.Class (liftIO)
 import qualified Data.Text           as T
 import           Data.Text              (Text)
-
+import qualified Data.Text.Encoding  as E
 import           Servant                ( throwError )
 import           Servant.Server         ( Application
                                         , BasicAuthCheck ( BasicAuthCheck )
@@ -46,8 +46,9 @@ import Servant.Server.Experimental.Auth ( AuthHandler
                                         )
 import Data.UUID as UUID                ( toText )
 
-import qualified GameReversiServer.Types   as Types
-import qualified GameReversiServer.Persist as Persist
+import qualified GameReversiServer.Types                  as Types
+import qualified GameReversiServer.Persist                as Persist
+import qualified GameReversiServer.Authentication.Token   as Token
 
 -- | Create a brand new session.
 -- Note that session and username are considered inseparable.
@@ -61,9 +62,7 @@ sessionNew username = do
   m <- liftIO $ Persist.createUserIfNotExist username
   maybe err ok m
   where
-    ok = return . Types.ResponseSessionNew . prependName . UUID.toText . Persist.token
-    prependName = T.append username
-
+    ok = return . Types.ResponseSessionNew . E.decodeUtf8 . Token.fromUser
     err = throwError $ err409
       { errBody = "Conflict. Username is already taken." }
 

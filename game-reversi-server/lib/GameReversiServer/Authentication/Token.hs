@@ -3,6 +3,8 @@
 
 module GameReversiServer.Authentication.Token where
 
+import qualified GameReversiServer.Persist as P
+
 import           Control.Monad      (guard)
 import           Data.ByteString    (ByteString)
 import qualified Data.List          as L
@@ -24,4 +26,11 @@ fromBytes bytes = do
 -- | Convert user credentials to token for `Authorization: Token <...>` HTTP header.
 toBytes :: (Text, UUID.UUID) -> ByteString
 toBytes (name, uuid) =
-  E.encodeUtf8 $ append name $ UUID.toText uuid
+  -- "name:uuid"
+  E.encodeUtf8 $ append name $ append ":" $ UUID.toText uuid
+
+
+-- | Convenient wrapper for `fromBytes`.
+fromUser :: P.User -> ByteString
+fromUser (P.User { P.username = name, P.token = token }) =
+  toBytes (name, token)
