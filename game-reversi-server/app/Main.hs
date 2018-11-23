@@ -446,7 +446,12 @@ serverFor = error "..."
 reversiServer :: Server GameReversiServerAPI
 reversiServer
   =    Handlers.sessionNew
-  :<|> ( Handlers.sessionCheck )
+  :<|> privateAPI
+    where
+      privateAPI user =
+        (    Handlers.sessionCheck user
+        :<|> Handlers.sessionList  user
+        )
 
 
 reversiApplication :: Application

@@ -14,7 +14,7 @@ module GameReversiServer.Types (
 
   ResponseSessionNew (..),
   ResponseSessionCheck (..),
-
+  ResponseSessionList (..),
 
 
   Inline_response_200 (..),
@@ -131,7 +131,16 @@ instance ToJSON   ResponseSessionCheck where
   toJSON    = genericToJSON    (removeFieldLabelPrefix "responseSessionCheck_")
 
 
-
+-- | All on-line players AND pending invitations.
+-- This method does not work while game is on.
+data ResponseSessionList = ResponseSessionList
+  { responseSessionList_players :: [User] -- ^ on-line players
+  , responseSessionList_invitations :: [User] -- ^ invitations from those players
+  } deriving (Show, Eq, Generic)
+instance FromJSON ResponseSessionList where
+  parseJSON = genericParseJSON (removeFieldLabelPrefix "responseSessionList_")
+instance ToJSON   ResponseSessionList where
+  toJSON    = genericToJSON    (removeFieldLabelPrefix "responseSessionList_")
 
 
 

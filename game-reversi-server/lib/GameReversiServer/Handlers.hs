@@ -70,8 +70,8 @@ sessionNew username = do
 sessionCheck :: P.User -> Handler Types.ResponseSessionCheck
 sessionCheck _ = return $ Types.ResponseSessionCheck True
 
-sessionList :: ()
-sessionList = ()
+sessionList :: P.User -> Handler Types.ResponseSessionList
+sessionList _ = throwError err403
 
 sessionInvite :: ()
 sessionInvite = ()

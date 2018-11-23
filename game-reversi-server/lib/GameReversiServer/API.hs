@@ -44,9 +44,10 @@ import           Web.HttpApiData
 -- | Servant type-level API, generated from the Swagger spec for GameReversiServer.
 type GameReversiServerAPI
     =    "session" :> "new" :> Capture "username" Text :> Post '[JSON] ResponseSessionNew -- 'POST /session/new/{username}' route
-    :<|> A.TokenAuth :> "session" :> "check" :> Get '[JSON] ResponseSessionCheck  -- 'GET /session/check' route
-      -- :<|>
-    -- :<|> "session" :> "list" :> Verb 'GET 200 '[JSON] Inline_response_200_1 -- 'sessionListGet' route
+    :<|> A.TokenAuth :>
+        (    "session" :> "check" :> Get '[JSON] ResponseSessionCheck  -- 'GET /session/check' route
+        :<|> "session" :> "list" :> Get '[JSON] ResponseSessionList    -- 'GET /session/list' route
+        )
     -- :<|> "session" :> "invite" :> Capture "username" Text :> Verb 'POST 200 '[JSON] Inline_response_200_2 -- 'sessionInviteUsernamePost' route
     -- :<|> "session" :> "invitation" :> Capture "reply" Text :> Capture "username" Text :> Verb 'POST 200 '[JSON] () -- 'sessionInvitationReplyUsernamePost' route
     -- :<|> "game" :> "reversi" :> "status" :> Verb 'GET 200 '[JSON] Inline_response_200_3 -- 'gameReversiStatusGet' route
