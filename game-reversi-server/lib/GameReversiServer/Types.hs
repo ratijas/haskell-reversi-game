@@ -15,7 +15,8 @@ module GameReversiServer.Types (
   ResponseSessionNew (..),
   ResponseSessionCheck (..),
   ResponseSessionList (..),
-
+  ResponseSessionInvite (..),
+  ResponseSessionInviteReply (..),
 
   Inline_response_200 (..),
   Inline_response_200_1 (..),
@@ -28,6 +29,7 @@ module GameReversiServer.Types (
 import           Data.Char        (ord, chr)
 import           Data.List        (stripPrefix)
 import           Data.Maybe       (fromMaybe)
+import qualified Data.Aeson       as A
 import           Data.Aeson       ( Value ( Object )
                                   , object
                                   , FromJSON(..)
@@ -37,7 +39,10 @@ import           Data.Aeson       ( Value ( Object )
                                   , (.:)
                                   , (.=)
                                   )
-import           Data.Aeson.Types (Options(..), defaultOptions)
+import           Data.Aeson.Types ( Options(..)
+                                  , defaultOptions
+                                  , typeMismatch
+                                  )
 import           Data.Text        (Text)
 import qualified Data.Text        as T
 import qualified Data.Map         as Map
@@ -134,7 +139,7 @@ instance ToJSON   ResponseSessionCheck where
 -- | All on-line players AND pending invitations.
 -- This method does not work while game is on.
 data ResponseSessionList = ResponseSessionList
-  { responseSessionList_players :: [User] -- ^ on-line players
+  { responseSessionList_players :: [User]     -- ^ on-line players
   , responseSessionList_invitations :: [User] -- ^ invitations from those players
   } deriving (Show, Eq, Generic)
 instance FromJSON ResponseSessionList where
@@ -143,7 +148,25 @@ instance ToJSON   ResponseSessionList where
   toJSON    = genericToJSON    (removeFieldLabelPrefix "responseSessionList_")
 
 
+data ResponseSessionInvite = ResponseSessionInvite
+  { responseSessionInvite_reply :: ResponseSessionInviteReply
+  } deriving (Show, Eq, Generic)
+instance FromJSON ResponseSessionInvite where
+  parseJSON = genericParseJSON (removeFieldLabelPrefix "responseSessionInvite_")
+instance ToJSON   ResponseSessionInvite where
+  toJSON    = genericToJSON    (removeFieldLabelPrefix "responseSessionInvite_")
 
+data ResponseSessionInviteReply
+  = Accepted
+  | Rejected
+  deriving (Show, Eq, Generic)
+instance FromJSON ResponseSessionInviteReply where
+  parseJSON (A.String "accepted") = return Accepted
+  parseJSON (A.String "rejected") = return Rejected
+  parseJSON invalid = typeMismatch "enum Reply" invalid
+instance ToJSON   ResponseSessionInviteReply where
+  toJSON Accepted = "accepted"
+  toJSON Rejected = "rejected"
 
 
 

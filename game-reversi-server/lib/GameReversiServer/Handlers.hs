@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module GameReversiServer.Handlers (
   sessionNew,
@@ -11,10 +12,12 @@ module GameReversiServer.Handlers (
   gameSurrender,
   ) where
 
+import           Control.Concurrent     (threadDelay)
 import           Control.Monad.IO.Class (liftIO)
 import qualified Data.Text           as T
 import           Data.Text              (Text)
 import qualified Data.Text.Encoding  as E
+import           Data.UUID as UUID      ( toText )
 import           Servant                ( throwError )
 import           Servant.Server         ( Application
                                         , BasicAuthCheck ( BasicAuthCheck )
@@ -28,6 +31,7 @@ import           Servant.Server         ( Application
                                         , Server
                                         , err401
                                         , err403
+                                        , err404
                                         , err409
                                         , errBody
                                         , serve
@@ -45,8 +49,6 @@ import Servant.Server.Experimental.Auth ( AuthHandler
                                         , AuthServerData
                                         , mkAuthHandler
                                         )
-import Data.UUID as UUID                ( toText )
-
 import qualified GameReversiServer.Types                  as Types
 import qualified GameReversiServer.Persist                as P
 import qualified GameReversiServer.Authentication.Token   as Token
@@ -70,11 +72,40 @@ sessionNew username = do
 sessionCheck :: P.User -> Handler Types.ResponseSessionCheck
 sessionCheck _ = return $ Types.ResponseSessionCheck True
 
+-- | Get on-line users AND pending invitations.
+-- This method does not work while game is on.
+--
+-- * Algorithm:
+--   0. Check that user is currently not playing a game, otherwise it's an error.
+--   1. Update on-line status of requesting user.
+--   2. Fetch all users with on-line status.
+--   3. Fetch all invitations for requesting user.
 sessionList :: P.User -> Handler Types.ResponseSessionList
-sessionList _ = throwError err403
+sessionList user = do
+  let user' = user { P.online = True }
+  liftIO $ P.updateOnlineStatus user'
+  onlines <- liftIO $ P.listOnlineUsers
+  invitations <- liftIO $ P.listInvitations user'
+  return $ Types.ResponseSessionList onlines invitations
 
-sessionInvite :: ()
-sessionInvite = ()
+-- | Synchronous invitation request
+--
+-- * Algorithm:
+--   0. Check that other player exists, otherwise it's 404 error.
+sessionInvite
+  :: P.User -- ^ Authenticated user who initiated an invitation
+  -> Text   -- ^ Invited user's username
+  -> Handler Types.ResponseSessionInvite
+sessionInvite user other'name = do
+  (other'm :: Maybe P.User) <- liftIO $ P.loadUser other'name
+  maybe notFound next other'm
+  where
+    notFound = throwError $ err404
+      { errBody = "Invited player not found" }
+    next :: P.User -> Handler Types.ResponseSessionInvite
+    next other = do
+      reply <- liftIO $ P.waitInvitation other user
+      return $ Types.ResponseSessionInvite reply
 
 sessionInvitationReply :: ()
 sessionInvitationReply = ()

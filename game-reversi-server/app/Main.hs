@@ -451,6 +451,7 @@ reversiServer
       privateAPI user =
         (    Handlers.sessionCheck user
         :<|> Handlers.sessionList  user
+        :<|> Handlers.sessionInvite user
         )
 
 
