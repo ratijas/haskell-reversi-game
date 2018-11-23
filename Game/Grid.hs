@@ -3,14 +3,11 @@
 module Grid where
 
 import           Control.Applicative
--- import           Control.Arrow
-import           Data.List           (Split, any)
+import           Data.List           (Split, any, concat)
 import           Data.Map            (Map, fromList)
 import qualified Data.Map            as Map
 import           Data.Maybe
 import qualified Data.Set            as Set
-import qualified Data.Text           as T
--- import           Debug.Trace
 import           Disc
 import           Util
 
@@ -19,16 +16,6 @@ type Cord = (Int, Int)
 
 
 type Board = Map Cord Disc
-
-data User = User { username :: String }
-
-data State = State {
-  board :: Board,
-  turn :: Maybe User,  -- ^ Current turn
-  players :: Map Disc User,
-  winner :: Maybe User,
-  error :: Maybe String
-}
 
 -- | Orientation of the line
 -- whether it is North, south east, west, south-east, etc
@@ -72,34 +59,23 @@ direction (nc_x, nc_y) (oc_x, oc_y)
   | (nc_x > oc_x) && (nc_y < oc_y) = SW
   | (nc_x > oc_x) && (nc_y == oc_y) = W
 
--- | Gives the next co-ordinate in the given direction
-move :: Direction -> Cord -> Maybe Cord
-move N (x,y)  = validate (x, y-1)
-move NE (x,y) = validate (x+1,y-1)
-move E (x,y)  = validate (x+1,y)
-move SE (x,y) = validate (x+1,y+1)
-move S (x,y)  = validate (x,y+1)
-move SW (x,y) = validate (x-1,y+1)
-move W (x,y)  = validate (x-1,y)
-move NW (x,y) = validate (x-1,y-1)
-
--- | It is a valid move if
--- 1) The current pos is empty
--- 2) There is an adjacent square with opposite colored disc
--- 3) placing the disc creates a sandwich
+-- a move is valid if the coord is empty and its satisfy 2 requirements:
+-- 1)there is an adjacent opposite disc
+-- 2)it forms a sandwich with oppsite disc inside
 isValidMove :: Cord -> Map Cord Disc -> Disc -> Bool
 isValidMove pos board turn = isEmptySquare pos board
   && not . null $ validAdjacent board turn pos
 
--- | Condition 1) in @isValidMove@
+-- is Coord is empty
 isEmptySquare :: Cord -> Map Cord Disc -> Bool
 isEmptySquare pos board = isNothing $ Map.lookup pos board
 
--- 2) Condition in @isValidMove@
+-- is Coord is opposite
 isOpposite :: Map Coord Disc -> Disc -> Coord -> Bool
 isOpposite board turn pos =
     Map.lookup pos board == Just $ swap turn
 
+-- all adjacent valid coord (here you can)
 validAdjacent :: Map Coord Disc -> Disc -> Coord -> [Coord]
 validAdjacent board turn pos = va
   where
@@ -108,12 +84,13 @@ validAdjacent board turn pos = va
                            isSandwich board turn pos $ direction coord pos
                 )  (adjacent pos)
 
--- 3) Condition in @isValidMove@
+-- is there a disc with same color on given direction
 isSandwich :: Map Coord Disc -> Disc -> Coord -> Direction -> Bool
 isSandwich board turn curpos dir =
   let res = not . null $ filter (\coord -> Map.lookup coord board == Just turn) $ safeTail $ line curpos dir
     in res
 
+-- get nearest coord with same disc on given direction
 nearestDisc :: Map Coord Disc -> Disc -> Coord -> Direction -> Coord
 nearestDisc board turn pos dir =
   safeHead $ filter (\coord -> Map.lookup coord board == Just turn) $ safeTail $ line curpos dir
@@ -121,9 +98,12 @@ nearestDisc board turn pos dir =
 updateBoard :: Cord -> Disc -> Board -> Board
 updateBoard pos turn board = Map.union (fromList nboard) board
   where
+    -- ass list
     nboard :: [(Coord, Disc)]
+    -- all valid adjacent to pos coords
     validAdj :: [Coord]
     validAdj = validAdjacent board turn pos
+    -- pairs of valid adjacent coord and nearest coord with same disc
     validEnds :: [(Coord, Coord)]
     validEnds = map (\coord -> (coord, nearestDisc board turn $ direction coord pos) ) validAdj
     nboard = case (validEnds) of
@@ -136,11 +116,12 @@ between :: Cord -> Coord -> [Coord]
 between pos1 pos2 =
   takeWhile (/= pos2) $ line pos1 $ direction pos1 pos2
 
+-- + impl for Coord
 coordPlus :: Coord -> Coord -> Coord
 coordPlus (x1,y1) (x2,y2) = Coord (x1+x2, y1+y2)
 
 
-  -- | returns a sequence of squares from cord in direction
+--  returns a sequence of squares from cord in direction
 line :: Cord -> Direction -> [Cord]
 line pos d = l
   where
@@ -149,7 +130,7 @@ line pos d = l
 allDirections :: [Direction]
 allDirections = (toEnum <$> [0..7::Int])::[Direction]
 
--- | get all valid moves
+--  get all valid moves
 allValidMoves :: Board -> Disc -> [Cord]
 allValidMoves board turn = filter is_valid empties
   where
