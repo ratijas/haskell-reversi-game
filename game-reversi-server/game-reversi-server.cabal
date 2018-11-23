@@ -18,6 +18,9 @@ library
                      , GameReversiServer.Authentication
                      , GameReversiServer.Authentication.Token
                      , GameReversiServer.Persist
+                     , GameLogic.Util
+                     , GameLogic.Grid
+                     , GameLogic.Disc
   ghc-options:       -Wall -fno-warn-unused-imports
   build-depends:       base
                      , aeson

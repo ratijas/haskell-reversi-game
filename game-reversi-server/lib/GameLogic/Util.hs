@@ -1,4 +1,4 @@
-module Util where
+module GameLogic.Util where
 
 minX :: Int
 minX = 0

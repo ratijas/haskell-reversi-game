@@ -1,4 +1,4 @@
-module Disc where
+module GameLogic.Disc where
 
 import           Data.Text
 import           Util

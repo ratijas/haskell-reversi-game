@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Grid where
+module GameLogic.Grid where
 
 import           Control.Applicative
 import           Data.List           (Split, any, concat)
