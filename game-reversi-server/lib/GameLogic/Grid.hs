@@ -3,13 +3,13 @@
 module GameLogic.Grid where
 
 import           Control.Applicative
-import           Data.List           (Split, any, concat)
+import           Data.List           (any, concat)
 import           Data.Map            (Map, fromList)
 import qualified Data.Map            as Map
 import           Data.Maybe
 import qualified Data.Set            as Set
-import           Disc
-import           Util
+import           GameLogic.Disc
+import           GameLogic.Util
 
 -- | Coordinate system goes from 0 to 7
 type Cord = (Int, Int)
@@ -23,24 +23,25 @@ type Board = Map Cord Disc
 data Direction = NW | N | NE | E | SE | S | SW | W
   deriving (Show, Eq, Enum)
 
-DirToCoord :: Direction -> Cord
-DirToCoord N  = Coord (0, -1)
-DirToCoord NE = Coord (1, -1)
-DirToCoord E  = Coord (1, 0)
-DirToCoord SE = Coord (1, 1)
-DirToCoord S  = Coord (0, 1)
-DirToCoord SW = Coord (-1, 1)
-DirToCoord W  = Coord (-1, 0)
-DirToCoord NW = Coord (-1, -1)
+  -- from direction to cord
+dirToCord :: Direction -> Cord
+dirToCord N  = (0, -1) :: Cord
+dirToCord NE = (1, -1) :: Cord
+dirToCord E  = (1, 0)  :: Cord
+dirToCord SE = (1, 1)  :: Cord
+dirToCord S  = (0, 1)  :: Cord
+dirToCord SW = (-1, 1) :: Cord
+dirToCord W  = (-1, 0) :: Cord
+dirToCord NW = (-1, -1) :: Cord
 
 -- array of coords
-allCoordinates :: [(Int,Int)]
-allCoordinates = (,) <$> [minX..maxX] <*> [minY..maxY]
+allCordinates :: [(Int,Int)]
+allCordinates = (,) <$> [minX..maxX] <*> [minY..maxY]
 
 -- validate if the coordinate is inside the board
 validate :: Cord -> Maybe Cord
 validate c@(x , y) = if (x > maxX || x < minX) || (y > maxY || y < minY)
-  then Nothing else c
+  then Nothing else (Just c)
 
 -- return the adjacent coordinates starting from NE clockwise
 adjacent :: Cord -> [Cord]
@@ -59,73 +60,73 @@ direction (nc_x, nc_y) (oc_x, oc_y)
   | (nc_x > oc_x) && (nc_y < oc_y) = SW
   | (nc_x > oc_x) && (nc_y == oc_y) = W
 
--- a move is valid if the coord is empty and its satisfy 2 requirements:
+-- a move is valid if the cord is empty and its satisfy 2 requirements:
 -- 1)there is an adjacent opposite disc
 -- 2)it forms a sandwich with oppsite disc inside
 isValidMove :: Cord -> Map Cord Disc -> Disc -> Bool
-isValidMove pos board turn = isEmptySquare pos board
-  && not . null $ validAdjacent board turn pos
+isValidMove pos board turn = (isEmptySquare pos board)
+  && (not . null $ validAdjacent board turn pos)
 
--- is Coord is empty
+-- is Cord is empty
 isEmptySquare :: Cord -> Map Cord Disc -> Bool
 isEmptySquare pos board = isNothing $ Map.lookup pos board
 
--- is Coord is opposite
-isOpposite :: Map Coord Disc -> Disc -> Coord -> Bool
+-- is Cord is opposite
+isOpposite :: Map Cord Disc -> Disc -> Cord -> Bool
 isOpposite board turn pos =
-    Map.lookup pos board == Just $ swap turn
+    (Map.lookup pos board) == (Just $ swap turn)
 
--- all adjacent valid coord (here you can)
-validAdjacent :: Map Coord Disc -> Disc -> Coord -> [Coord]
+-- all adjacent valid cord (here you can)
+validAdjacent :: Map Cord Disc -> Disc -> Cord -> [Cord]
 validAdjacent board turn pos = va
   where
-    va :: [Coord]
-    va = filter (\coord -> isOpposite board turn coord &&
-                           isSandwich board turn pos $ direction coord pos
+    va :: [Cord]
+    va = filter (\cord -> (isOpposite board turn cord) &&
+                           (isSandwich board turn pos $ direction cord pos)
                 )  (adjacent pos)
 
 -- is there a disc with same color on given direction
-isSandwich :: Map Coord Disc -> Disc -> Coord -> Direction -> Bool
+isSandwich :: Map Cord Disc -> Disc -> Cord -> Direction -> Bool
 isSandwich board turn curpos dir =
-  let res = not . null $ filter (\coord -> Map.lookup coord board == Just turn) $ safeTail $ line curpos dir
+  let res = not . null $ filter (\cord -> Map.lookup cord board == Just turn) $ safeTail $ line curpos dir
     in res
 
--- get nearest coord with same disc on given direction
-nearestDisc :: Map Coord Disc -> Disc -> Coord -> Direction -> Coord
+-- get nearest cord with same disc on given direction
+nearestDisc :: Map Cord Disc -> Disc -> Cord -> Direction -> Cord
 nearestDisc board turn pos dir =
-  safeHead $ filter (\coord -> Map.lookup coord board == Just turn) $ safeTail $ line curpos dir
+  safeHead $ filter (\cord -> (Map.lookup cord board) == (Just turn)) $ safeTail $ line pos dir
 
 updateBoard :: Cord -> Disc -> Board -> Board
 updateBoard pos turn board = Map.union (fromList nboard) board
   where
     -- ass list
-    nboard :: [(Coord, Disc)]
-    -- all valid adjacent to pos coords
-    validAdj :: [Coord]
+    nboard :: [(Cord, Disc)]
+    -- all valid adjacent to pos cords
+    validAdj :: [Cord]
     validAdj = validAdjacent board turn pos
-    -- pairs of valid adjacent coord and nearest coord with same disc
-    validEnds :: [(Coord, Coord)]
-    validEnds = map (\coord -> (coord, nearestDisc board turn $ direction coord pos) ) validAdj
+    -- pairs of valid adjacent cord and nearest cord with same disc
+    validEnds :: [(Cord, Cord)]
+    validEnds = map (\cord -> (cord, nearestDisc board turn pos $ direction cord pos) ) validAdj
     nboard = case (validEnds) of
       []        -> []
-      otherwise -> zip (concat $ map (\(x, y) -> between x y) validEnds) turn
+      _ -> zip (concat $ map (\(x, y) -> between x y) validEnds) (repeat turn)
 
 -- returns the sequence of squares from fist position to second position
 -- including the start and end
-between :: Cord -> Coord -> [Coord]
+between :: Cord -> Cord -> [Cord]
 between pos1 pos2 =
   takeWhile (/= pos2) $ line pos1 $ direction pos1 pos2
 
--- + impl for Coord
-coordPlus :: Coord -> Coord -> Coord
-coordPlus (x1,y1) (x2,y2) = Coord (x1+x2, y1+y2)
+-- + impl for Cord
+cordPlus :: Cord -> Cord -> Cord
+cordPlus (x1,y1) (x2,y2) = (x1+x2, y1+y2) :: Cord
 
 
 --  returns a sequence of squares from cord in direction
 line :: Cord -> Direction -> [Cord]
 line pos d = l
   where
-    l = filter (isJust . validate) $ iterate (coordPlus $ DirToCoord pos) pos
+    l = filter (isJust . validate) $ iterate (cordPlus $ dirToCord d) pos
 
 allDirections :: [Direction]
 allDirections = (toEnum <$> [0..7::Int])::[Direction]
@@ -140,5 +141,5 @@ allValidMoves board turn = filter is_valid empties
     emptyCords :: Board -> [Cord]
     emptyCords board = Set.toList $ Set.difference allSet filled
       where
-        allSet = Set.fromList allCoordinates
+        allSet = Set.fromList allCordinates
         filled = Set.fromList (fst <$> Map.toList board)

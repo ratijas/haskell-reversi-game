@@ -21,4 +21,4 @@ safeTail [] = []
 safeTail (x:xs) = xs
 
 safeHead :: [a] -> a
-safeHead (x:xs) = Just x
+safeHead (x:xs) = x

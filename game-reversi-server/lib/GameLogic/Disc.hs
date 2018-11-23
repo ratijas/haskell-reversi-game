@@ -1,7 +1,7 @@
 module GameLogic.Disc where
 
 import           Data.Text
-import           Util
+import           GameLogic.Util
 
 data Disc = White | Black
     deriving (Show, Eq, Ord)
