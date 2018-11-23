@@ -5,10 +5,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module GameReversiServer.Authentication where
 
@@ -253,11 +253,9 @@ tokenAuthHandler = mkAuthHandler handler
         Just user -> return user
 
 
-
-
-
 -- | Custom Authentication scheme based on special token inside `Authorization` HTTP header.
 type TokenAuth = AuthProtect "token"
+
 
 -- | We need to specify the data returned after authentication
 type instance AuthServerData TokenAuth = Persist.User

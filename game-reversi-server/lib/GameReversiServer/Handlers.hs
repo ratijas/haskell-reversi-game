@@ -48,7 +48,7 @@ import Servant.Server.Experimental.Auth ( AuthHandler
 import Data.UUID as UUID                ( toText )
 
 import qualified GameReversiServer.Types                  as Types
-import qualified GameReversiServer.Persist                as Persist
+import qualified GameReversiServer.Persist                as P
 import qualified GameReversiServer.Authentication.Token   as Token
 
 -- | Create a brand new session.
@@ -60,14 +60,14 @@ import qualified GameReversiServer.Authentication.Token   as Token
 --   2.b. otherwise throw an error 409: "Conflict. Username is already taken."
 sessionNew :: Text -> Handler Types.ResponseSessionNew
 sessionNew username = do
-  m <- liftIO $ Persist.createUserIfNotExist username
+  m <- liftIO $ P.createUserIfNotExist username
   maybe err ok m
   where
     ok = return . Types.ResponseSessionNew . E.decodeUtf8 . Token.fromUser
     err = throwError $ err409
       { errBody = "Conflict. Username is already taken." }
 
-sessionCheck :: Persist.User -> Handler Types.ResponseSessionCheck
+sessionCheck :: P.User -> Handler Types.ResponseSessionCheck
 sessionCheck _ = return $ Types.ResponseSessionCheck True
 
 sessionList :: ()

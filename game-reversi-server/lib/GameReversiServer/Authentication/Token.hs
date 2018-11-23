@@ -1,5 +1,5 @@
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module GameReversiServer.Authentication.Token where
 

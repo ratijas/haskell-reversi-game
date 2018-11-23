@@ -1,7 +1,6 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-unused-imports #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 module GameReversiServer.Types (
   Board (..),
@@ -119,6 +118,7 @@ instance FromJSON ResponseSessionNew where
   parseJSON = genericParseJSON (removeFieldLabelPrefix "responseSessionNew_")
 instance ToJSON   ResponseSessionNew where
   toJSON    = genericToJSON    (removeFieldLabelPrefix "responseSessionNew_")
+
 
 -- | Check session. This response should be protected by authenticating endpoint,
 -- so field "ok" will always be True.
