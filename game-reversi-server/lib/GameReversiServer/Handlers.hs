@@ -42,6 +42,7 @@ import           Servant.API            ( (:<|>)((:<|>))
                                         , AuthProtect
                                         , Get
                                         , JSON
+                                        , NoContent (..)
                                         )
 import Servant.API.BasicAuth            ( BasicAuth
                                         , BasicAuthData( BasicAuthData ))
@@ -109,8 +110,27 @@ sessionInvite user other'name = do
       reply <- liftIO $ P.waitInvitation other user
       return $ Types.ResponseSessionInvite reply
 
-sessionInvitationReply :: ()
-sessionInvitationReply = ()
+-- | Reply to an invitation request.
+-- This method does not work while game is on.
+--
+-- * Algorithm:
+--   0. Preconditions:
+--   0.a. Check that other player exists, otherwise it's 404 error.
+--   0.b. Check that invitation exists from other player and its TTL > 3 seconds.
+--   1.a. If accepting:
+--   1.a.1. Accept an invitation from this player.
+--   1.a.2. Reject all other pending invitations.
+--   1.a.3. Transition into the game state:
+--   1.a.3.1. Unset both players' online status (so that nobody could send them an invitation).
+--   1.a.3.2. Prepare game board.
+--   1.b. Otherwise, rejecting:
+--   1.b.1. Reject only invitation from this player.
+sessionInvitationReply
+  :: P.User                           -- ^ Authenticated user who replies to an invitation
+  -> Types.ResponseSessionInviteReply -- ^ Particular reply
+  -> Text                             -- ^ User who initiated an initiated request
+  -> Handler NoContent
+sessionInvitationReply _ _ _= return NoContent
 
 gameStatus :: ()
 gameStatus = ()

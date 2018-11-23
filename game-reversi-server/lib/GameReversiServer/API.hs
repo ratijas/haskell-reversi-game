@@ -48,8 +48,9 @@ type GameReversiServerAPI
         (    "session" :> "check" :> Get '[JSON] ResponseSessionCheck  -- 'GET /session/check' route
         :<|> "session" :> "list" :> Get '[JSON] ResponseSessionList    -- 'GET /session/list' route
         :<|> "session" :> "invite" :> Capture "username" Text :> Post '[JSON] ResponseSessionInvite -- 'POST /session/invite/{username}' route
+        :<|> "session" :> "invitation" :> "accept" :> Capture "username" Text :> Post '[JSON] NoContent -- 'POST /session/invitation/accept/{username}' route
+        :<|> "session" :> "invitation" :> "reject" :> Capture "username" Text :> Post '[JSON] NoContent -- 'POST /session/invitation/reject/{username}' route
         )
-    -- :<|> "session" :> "invitation" :> Capture "reply" Text :> Capture "username" Text :> Verb 'POST 200 '[JSON] () -- 'sessionInvitationReplyUsernamePost' route
     -- :<|> "game" :> "reversi" :> "status" :> Verb 'GET 200 '[JSON] Inline_response_200_3 -- 'gameReversiStatusGet' route
     -- :<|> "game" :> "surrender" :> Verb 'POST 200 '[JSON] () -- 'gameSurrenderPost' route
     -- :<|> "game" :> "turn" :> Capture "location" Text :> Verb 'POST 200 '[JSON] Inline_response_200_4 -- 'gameTurnLocationPost' route

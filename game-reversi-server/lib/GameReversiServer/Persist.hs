@@ -66,6 +66,13 @@ data User = User
   , online   :: Bool      -- ^ On-line status
   }
 
+data Invitation = Invitation
+  { invitationFrom :: User -- ^ User who initiated an invitation request
+  , invitationTo   :: User -- ^ Invited user
+  , invitationTTL  :: Int  -- ^ Time to live left
+  }
+
+
 -- | Handly contertator between modules. Strips all information, leaving only username.
 userToTypes :: User -> Types.User
 userToTypes User { username = name } = Types.User name

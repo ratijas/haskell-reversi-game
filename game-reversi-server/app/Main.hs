@@ -452,6 +452,8 @@ reversiServer
         (    Handlers.sessionCheck user
         :<|> Handlers.sessionList  user
         :<|> Handlers.sessionInvite user
+        :<|> Handlers.sessionInvitationReply user Types.Accept
+        :<|> Handlers.sessionInvitationReply user Types.Reject
         )
 
 
