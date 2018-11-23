@@ -88,10 +88,12 @@ sessionList user = do
   invitations <- liftIO $ P.listInvitations user'
   return $ Types.ResponseSessionList onlines invitations
 
--- | Synchronous invitation request
+-- | Synchronous invitation request.
+-- This method does not work while game is on.
 --
 -- * Algorithm:
 --   0. Check that other player exists, otherwise it's 404 error.
+--   1. Blocking wait for reply with timeout of 10 seconds.
 sessionInvite
   :: P.User -- ^ Authenticated user who initiated an invitation
   -> Text   -- ^ Invited user's username
