@@ -228,13 +228,13 @@ waitInvitation to from = do
   r <- reply
   return $ case r of
     Just resp -> resp
-    Nothing   -> Types.Rejected
+    Nothing   -> Types.Reject
   where
     reply :: IO (Maybe Types.ResponseSessionInviteReply)
     reply = timeout (10 * 1000000) $ do
       -- timeout after 10 seconds
       conn <- getConnection
-      reply' <- newIORef Types.Rejected
+      reply' <- newIORef Types.Reject
       runRedis conn $ do
         let key = invitationsKey to from
         let opts = SetOpts{ setSeconds = Just 30
@@ -248,10 +248,10 @@ waitInvitation to from = do
             if E.decodeUtf8 (R.msgMessage msg) == username from
               then case ch of
                 _ | B.isPrefixOf "invitation:accept:" ch -> do
-                      writeIORef reply' Types.Accepted
+                      writeIORef reply' Types.Accept
                       return $ R.unsubscribe []
                   | B.isPrefixOf "invitation:reject:" ch -> do
-                      writeIORef reply' Types.Rejected
+                      writeIORef reply' Types.Reject
                       return $ R.unsubscribe []
                   | otherwise                            -> do
                       fail "Unexpected message format"

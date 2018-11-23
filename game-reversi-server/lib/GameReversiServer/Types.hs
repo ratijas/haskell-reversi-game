@@ -157,16 +157,16 @@ instance ToJSON   ResponseSessionInvite where
   toJSON    = genericToJSON    (removeFieldLabelPrefix "responseSessionInvite_")
 
 data ResponseSessionInviteReply
-  = Accepted
-  | Rejected
+  = Accept
+  | Reject
   deriving (Show, Eq, Generic)
 instance FromJSON ResponseSessionInviteReply where
-  parseJSON (A.String "accepted") = return Accepted
-  parseJSON (A.String "rejected") = return Rejected
+  parseJSON (A.String "accepted") = return Accept
+  parseJSON (A.String "rejected") = return Reject
   parseJSON invalid = typeMismatch "enum Reply" invalid
 instance ToJSON   ResponseSessionInviteReply where
-  toJSON Accepted = "accepted"
-  toJSON Rejected = "rejected"
+  toJSON Accept = "accepted"
+  toJSON Reject = "rejected"
 
 
 
