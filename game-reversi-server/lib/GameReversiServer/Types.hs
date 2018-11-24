@@ -2,29 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
-module GameReversiServer.Types (
-  Board (..),
-
-  ErrorModel (..),
-  Location (..),
-  UniqueLocations (..),
-  User (..),
-  locationToXY,
-  locationFromXY,
-
-  ResponseSessionNew (..),
-  ResponseSessionCheck (..),
-  ResponseSessionList (..),
-  ResponseSessionInvite (..),
-  ResponseSessionInviteReply (..),
-
-  Inline_response_200 (..),
-  Inline_response_200_1 (..),
-  Inline_response_200_2 (..),
-  Inline_response_200_3 (..),
-  Inline_response_200_3_players (..),
-  Inline_response_200_4 (..),
-  ) where
+module GameReversiServer.Types where
 
 import           Data.Char        (ord, chr)
 import           Data.List        (stripPrefix)
@@ -51,7 +29,7 @@ import           Data.Function    ((&))
 import qualified Data.UUID        ( UUID, toString, fromString )
 
 -- | 8 rows of board, A to H.
-newtype Board = Board { unBoard :: [Int] }
+newtype Board = Board { unBoard :: [[Int]] }
   deriving (Show, Eq, FromJSON, ToJSON, Generic)
 
 
@@ -156,6 +134,7 @@ instance FromJSON ResponseSessionInvite where
 instance ToJSON   ResponseSessionInvite where
   toJSON    = genericToJSON    (removeFieldLabelPrefix "responseSessionInvite_")
 
+
 data ResponseSessionInviteReply
   = Accept
   | Reject
@@ -169,84 +148,46 @@ instance ToJSON   ResponseSessionInviteReply where
   toJSON Reject = "rejected"
 
 
-
-
-
-
-
-
-
-
-
-
--- |
-data Inline_response_200 = Inline_response_200
-  { inlineResponse200Token :: Text -- ^ Authorization token to be used with `Token` security definition.
+data ResponseGameStatus = ResponseGameStatus
+  { responseGameStatus_status    :: GameStatus
+  , responseGameStatus_players   :: ResponseGameStatusPlayers
+  , responseGameStatus_board     :: Board
+  , responseGameStatus_history   :: UniqueLocations
+  , responseGameStatus_available :: UniqueLocations
   } deriving (Show, Eq, Generic)
+instance FromJSON ResponseGameStatus where
+  parseJSON = genericParseJSON (removeFieldLabelPrefix "responseGameStatus_")
+instance ToJSON   ResponseGameStatus where
+  toJSON    = genericToJSON    (removeFieldLabelPrefix "responseGameStatus_")
 
-instance FromJSON Inline_response_200 where
-  parseJSON = genericParseJSON (removeFieldLabelPrefix "inlineResponse200")
-instance ToJSON Inline_response_200 where
-  toJSON = genericToJSON (removeFieldLabelPrefix "inlineResponse200")
 
--- |
-data Inline_response_200_1 = Inline_response_200_1
-  { inlineResponse2001Players :: [User] -- ^
-  , inlineResponse2001Invitations :: [User] -- ^
+data GameStatus = Turn | Wait | Win | Lose | Draw | Error
+  deriving (Show, Eq, Generic)
+instance FromJSON GameStatus where
+  parseJSON (A.String "turn" ) = return Turn
+  parseJSON (A.String "wait" ) = return Wait
+  parseJSON (A.String "win"  ) = return Win
+  parseJSON (A.String "lose" ) = return Lose
+  parseJSON (A.String "draw" ) = return Draw
+  parseJSON (A.String "error") = return Error
+  parseJSON invalid = typeMismatch "enum GameStatus" invalid
+instance ToJSON   GameStatus where
+  toJSON Turn  = "turn"
+  toJSON Wait  = "wait"
+  toJSON Win   = "win"
+  toJSON Lose  = "lose"
+  toJSON Draw  = "draw"
+  toJSON Error = "error"
+
+
+data ResponseGameStatusPlayers = ResponseGameStatusPlayers
+  { responseGameStatusPlayers_white :: User
+  , responseGameStatusPlayers_black :: User
   } deriving (Show, Eq, Generic)
-
-instance FromJSON Inline_response_200_1 where
-  parseJSON = genericParseJSON (removeFieldLabelPrefix "inlineResponse2001")
-instance ToJSON Inline_response_200_1 where
-  toJSON = genericToJSON (removeFieldLabelPrefix "inlineResponse2001")
-
--- |
-data Inline_response_200_2 = Inline_response_200_2
-  { inlineResponse2002Reply :: Text -- ^
-  } deriving (Show, Eq, Generic)
-
-instance FromJSON Inline_response_200_2 where
-  parseJSON = genericParseJSON (removeFieldLabelPrefix "inlineResponse2002")
-instance ToJSON Inline_response_200_2 where
-  toJSON = genericToJSON (removeFieldLabelPrefix "inlineResponse2002")
-
--- |
-data Inline_response_200_3 = Inline_response_200_3
-  { inlineResponse2003Status :: Text -- ^ Overall status of the game.   - turn/wait: your/rival's turn;  - win/lose: you win/lose;  - draw: nobody win, nobody lose, it's a draw.  - error: when you your opponent disconnects or timeouts.
-  , inlineResponse2003Players :: Inline_response_200_3_players -- ^
-  , inlineResponse2003History :: UniqueLocations -- ^
-  , inlineResponse2003Board :: Board -- ^
-  , inlineResponse2003Available :: UniqueLocations -- ^
-  } deriving (Show, Eq, Generic)
-
-instance FromJSON Inline_response_200_3 where
-  parseJSON = genericParseJSON (removeFieldLabelPrefix "inlineResponse2003")
-instance ToJSON Inline_response_200_3 where
-  toJSON = genericToJSON (removeFieldLabelPrefix "inlineResponse2003")
-
--- |
-data Inline_response_200_3_players = Inline_response_200_3_players
-  { inlineResponse2003PlayersWhite :: User -- ^
-  , inlineResponse2003PlayersBlack :: User -- ^
-  } deriving (Show, Eq, Generic)
-
-instance FromJSON Inline_response_200_3_players where
-  parseJSON = genericParseJSON (removeFieldLabelPrefix "inlineResponse2003Players")
-instance ToJSON Inline_response_200_3_players where
-  toJSON = genericToJSON (removeFieldLabelPrefix "inlineResponse2003Players")
-
--- |
-data Inline_response_200_4 = Inline_response_200_4
-  { inlineResponse2004Flipped :: UniqueLocations -- ^
-  } deriving (Show, Eq, Generic)
-
-instance FromJSON Inline_response_200_4 where
-  parseJSON = genericParseJSON (removeFieldLabelPrefix "inlineResponse2004")
-instance ToJSON Inline_response_200_4 where
-  toJSON = genericToJSON (removeFieldLabelPrefix "inlineResponse2004")
-
-
-
+instance FromJSON ResponseGameStatusPlayers where
+  parseJSON = genericParseJSON (removeFieldLabelPrefix "responseGameStatusPlayers_")
+instance ToJSON   ResponseGameStatusPlayers where
+  toJSON    = genericToJSON    (removeFieldLabelPrefix "responseGameStatusPlayers_")
 
 
 -- Remove a field label prefix during JSON parsing.

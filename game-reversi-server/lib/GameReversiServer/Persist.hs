@@ -7,6 +7,7 @@ module GameReversiServer.Persist
   (
     User( User )
   , userToTypes
+  , userFromTypes
   , username
   , token
   , online
@@ -15,7 +16,10 @@ module GameReversiServer.Persist
   , updateOnlineStatus
   , listOnlineUsers
   , listInvitations
+  , invitationAccept
+  , invitationReject
   , waitInvitation
+  , gameInit
   ) where
 
 import           Data.Maybe             ( catMaybes, isJust )
@@ -58,7 +62,14 @@ import qualified GameReversiServer.Types as Types
 -- invitation:accept:{to}   -- ^ Channels.
 -- invitation:reject:{to}   --
 --                          --   Message content: "{from}"
-
+-- game:id:{username}       -- ^ A game that {username} currently playing.
+--                          --   Value is the game id
+-- game:info:{id}           -- ^ A hashmap with informations about the game.
+--                          --   Fields:
+--                          --   - player1: {username}
+--                          --   - player2: {username}
+--                          --   - history: JSON list of locations
+--                          --   - board: JSON serialized board state
 
 data User = User
   { username :: Text      -- ^ Non-empty username
@@ -72,10 +83,13 @@ data Invitation = Invitation
   , invitationTTL  :: Int  -- ^ Time to live left
   }
 
-
 -- | Handly contertator between modules. Strips all information, leaving only username.
 userToTypes :: User -> Types.User
 userToTypes User { username = name } = Types.User name
+
+userFromTypes :: Types.User -> IO (Maybe User)
+userFromTypes (Types.User name) =
+  loadUser name
 
 -- | Connect to Redis server
 getConnection :: IO Connection
@@ -265,3 +279,40 @@ waitInvitation to from = do
               else return mempty
 
       readIORef reply'
+
+
+gameIdKey :: User -> ByteString
+gameIdKey = E.encodeUtf8 . T.append "game:id:" . username
+
+gameInfoKey :: ByteString -> ByteString
+gameInfoKey = B.append "game:info:"
+
+gameIdValue :: User -> ByteString
+gameIdValue = E.encodeUtf8 . username
+
+getGameId :: User -> IO (Maybe ByteString)
+getGameId user = do
+  conn <- getConnection
+  reply <- runRedis conn $ do
+    R.get (gameIdKey user)
+  either constErr return reply
+
+
+gameInit :: User -> User -> IO ()
+gameInit p1 p2 = do
+  conn <- getConnection
+  uuid <- UUID.nextRandom
+  let gameId = BL.toStrict $ UUID.toByteString uuid
+
+  runRedis conn $ do
+    _ <- R.set (gameIdKey p1) gameId
+    _ <- R.set (gameIdKey p2) gameId
+
+    let infoK = (gameInfoKey gameId)
+    _ <- R.hset infoK "player1" (E.encodeUtf8 $ username p1)
+    _ <- R.hset infoK "player2" (E.encodeUtf8 $ username p2)
+    _ <- R.hset infoK "history" ""
+    --
+    _ <- R.hset infoK "board"   ""
+
+    return ()

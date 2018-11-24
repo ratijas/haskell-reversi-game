@@ -130,10 +130,40 @@ sessionInvitationReply
   -> Types.ResponseSessionInviteReply -- ^ Particular reply
   -> Text                             -- ^ User who initiated an initiated request
   -> Handler NoContent
-sessionInvitationReply _ _ _= return NoContent
+sessionInvitationReply user reply other'name = do
+  (other'm :: Maybe P.User) <- liftIO $ P.loadUser other'name
+  (other :: P.User) <- maybe userNotFound return other'm
+  let other't = P.userToTypes other
+  invitations <- liftIO $ P.listInvitations user
+  if other't `elem` invitations then return ()
+                                else invitationNotFound
+  case reply of
+    -- 1.a.
+    Types.Accept -> do
+      liftIO $ P.invitationAccept user other
+      -- do
+      --   u <- P.userFromTypes <$> ( invitations \\ (Types.User other'name))
+      --   u' <- u
+      --   liftIO $ P.invitationReject u'
+      -- P.updateOnlineStatus user
+      liftIO $ P.gameInit user other
 
-gameStatus :: ()
-gameStatus = ()
+    -- 1.b.
+    Types.Reject -> do
+      liftIO $ P.invitationReject user other
+
+  return NoContent
+
+  where
+    userNotFound = throwError $ err404
+      { errBody = "Player not found" }
+    invitationNotFound = throwError $ err404
+      { errBody = "Invitation not found" }
+
+
+
+gameStatus :: P.User -> Handler Types.ResponseGameStatus
+gameStatus = error "..."
 
 gameTurn :: ()
 gameTurn = ()
