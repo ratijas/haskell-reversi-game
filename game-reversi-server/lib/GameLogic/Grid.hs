@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module GameLogic.Grid (
-  Board,
+  Board (..),
   Cord,
   Direction (..),
   allValidMoves,
