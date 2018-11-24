@@ -21,8 +21,10 @@ module GameReversiServer.Persist
   , waitInvitation
   , gameInit
   , gameLoad
+  , gameStore
   ) where
 
+import           Data.Aeson
 import           Data.Maybe             ( catMaybes, isJust )
 import           Control.Monad          ( guard, liftM, void )
 import           Control.Monad.IO.Class ( liftIO )
@@ -50,6 +52,8 @@ import qualified Data.UUID.V4 as UUID   ( nextRandom )
 import           System.Timeout         ( timeout )
 
 import qualified GameReversiServer.Types as Types
+import qualified GameLogic.Grid as Game
+import qualified GameLogic.Disc as Game
 
 
 -- * Redis internals
@@ -65,12 +69,7 @@ import qualified GameReversiServer.Types as Types
 --                          --   Message content: "{from}"
 -- game:id:{username}       -- ^ A game that {username} currently playing.
 --                          --   Value is the game id
--- game:info:{id}           -- ^ A hashmap with informations about the game.
---                          --   Fields:
---                          --   - player1: {username}
---                          --   - player2: {username}
---                          --   - history: JSON list of locations
---                          --   - board: JSON serialized board state
+-- game:info:{id}           -- ^ JSON encoded game state
 
 data User = User
   { username :: Text      -- ^ Non-empty username
@@ -282,8 +281,8 @@ waitInvitation to from = do
       readIORef reply'
 
 
-gameIdKey :: User -> ByteString
-gameIdKey = E.encodeUtf8 . T.append "game:id:" . username
+gameIdKey :: Types.User -> ByteString
+gameIdKey (Types.User name) = E.encodeUtf8 $ T.append "game:id:"  name
 
 gameInfoKey :: ByteString -> ByteString
 gameInfoKey = B.append "game:info:"
@@ -291,7 +290,7 @@ gameInfoKey = B.append "game:info:"
 gameIdValue :: User -> ByteString
 gameIdValue = E.encodeUtf8 . username
 
-getGameId :: User -> IO (Maybe ByteString)
+getGameId :: Types.User -> IO (Maybe ByteString)
 getGameId user = do
   conn <- getConnection
   reply <- runRedis conn $ do
@@ -301,30 +300,52 @@ getGameId user = do
 
 gameInit :: User -> User -> IO ()
 gameInit p1 p2 = do
-  conn <- getConnection
   uuid <- UUID.nextRandom
   let gameId = BL.toStrict $ UUID.toByteString uuid
 
-  runRedis conn $ do
-    _ <- R.set (gameIdKey p1) gameId
-    _ <- R.set (gameIdKey p2) gameId
+  let status = Types.ResponseGameStatus {
+        Types.responseGameStatus_status    = Types.Turn
+      , Types.responseGameStatus_players   = Types.ResponseGameStatusPlayers (userToTypes p1) (userToTypes p2)
+      , Types.responseGameStatus_board     = Types.boardFromGameLogic $ Game.initBoard
+      , Types.responseGameStatus_history   = Types.UniqueLocations []
+      , Types.responseGameStatus_available = Types.UniqueLocations []
+      }
+  gameStore gameId status
 
-    let infoK = (gameInfoKey gameId)
-    _ <- R.hset infoK "player1" (E.encodeUtf8 $ username p1)
-    _ <- R.hset infoK "player2" (E.encodeUtf8 $ username p2)
-    _ <- R.hset infoK "history" ""
-    --
-    _ <- R.hset infoK "board"   ""
-
-    return ()
 
 gameLoad :: User -> IO (Maybe Types.ResponseGameStatus)
 gameLoad user = do
   let user't = userToTypes user
-  return $ Just $ Types.ResponseGameStatus
-    { Types.responseGameStatus_status = Types.Turn
-    , Types.responseGameStatus_players = Types.ResponseGameStatusPlayers user't user't
-    , Types.responseGameStatus_board = Types.Board [[]]
-    , Types.responseGameStatus_history = Types.UniqueLocations []
-    , Types.responseGameStatus_available = Types.UniqueLocations []
-    }
+  gameId'm <- getGameId user't
+  gameId <- maybe (fail "Game not found") return gameId'm
+  let infoK = (gameInfoKey gameId)
+
+  conn <- getConnection
+  reply <- runRedis conn $ do
+    R.get infoK
+  info'mb <- either constErr return reply
+  info'b <- maybe (fail "Game info not found") return info'mb
+
+  let info'm = (decode $ BL.fromStrict info'b) :: Maybe Types.ResponseGameStatus
+  info <- maybe (fail "Game info invalid") return info'm
+
+  return $ Just info
+
+gameStore
+  :: ByteString               -- ^ Game ID
+  -> Types.ResponseGameStatus -- ^ Game status
+  -> IO ()
+gameStore gameId status = do
+  let (Types.ResponseGameStatusPlayers p1 p2) = Types.responseGameStatus_players status
+  let idKey1 = (gameIdKey p1)
+  let idKey2 = (gameIdKey p2)
+  let infoK = (gameInfoKey gameId)
+
+  conn <- getConnection
+  runRedis conn $ do
+    _ <- R.set infoK (BL.toStrict $ encode status)
+    _ <- R.set idKey1 gameId
+    _ <- R.set idKey2 gameId
+    return ()
+
+  return ()

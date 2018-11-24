@@ -2,17 +2,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module GameLogic.Grid where
- -- (
- --  Board (..),
- --  Cord,
- --  Direction (..),
- --  allValidMoves,
- --  initBoard,
-
- --  -- debug
- --  adjacent,
-
- --  ) where
 
 import           Control.Applicative
 import           Control.Monad       (guard)

@@ -5,8 +5,6 @@ module GameLogic.Disc (
   isWhite,
   ) where
 
-import Data.Text
-
 data Disc = White | Black
     deriving (Show, Eq, Ord)
 
