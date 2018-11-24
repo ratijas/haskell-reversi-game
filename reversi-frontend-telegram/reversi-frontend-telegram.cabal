@@ -29,4 +29,7 @@ executable reversi-frontend-telegram-exe
   build-depends:     base >=4.7 && <5
                    , reversi-frontend-telegram
                    , telegram-api
+                   , http-client
+                   , http-client-tls
+                   , text
   default-language: Haskell2010
