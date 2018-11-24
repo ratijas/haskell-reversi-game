@@ -19,7 +19,6 @@ import Data.Text (Text, pack, unpack)
 import Data.Monoid ((<>))
 import Control.Applicative ((<$>), (<*>))
 import Options.Applicative
-
 import GameLogic.Print
 import GameLogic.Disc
 import GameLogic.Grid
@@ -31,6 +30,7 @@ import Data.ByteString (ByteString)
 import Data.List (intercalate)
 import Data.Aeson (Value, FromJSON(..), ToJSON(..), genericToJSON, genericParseJSON)
 import Data.Time.Calendar (Day, fromGregorian)
+import qualified  Data.Map as Map
 import qualified Network.Wai.Handler.Warp as Warp
 import Servant (Application, Server, serve, serveWithContext, serveDirectoryWebApp)
 import Servant.API
@@ -474,19 +474,33 @@ loopGame board turn = do
   printBoard board turn
   putStrLn $ "Current move: " ++ (show turn)
   nextmove <- getLine
-  case Types.locationToXY $ Types.Location (pack nextmove) of
-    Just coords -> case (updateBoard board turn coords) of
-        Just board' -> do
-          putStrLn "your move is succesfully acepted"
-          putStrLn "________________________________\n"
-          loopGame board' (flip' turn)
+  let avail = not . null ((allValidMoves board Black) ++ (allValidMoves board White))
+  case (avail) of
+    True -> do
+      (case Types.locationToXY $ Types.Location (pack nextmove) of
+        Just coords -> case (updateBoard board turn coords) of
+            Just board' -> do
+              putStrLn "your move is succesfully acepted"
+              putStrLn "________________________________\n"
+              loopGame board' (flip' turn)
+            Nothing -> do
+              putStrLn "Your move was wrong,try again"
+              putStrLn "________________________________\n"
+              loopGame board turn
         Nothing -> do
-          putStrLn "Your move was wrong,try again"
-          putStrLn "________________________________\n"
+          putStrLn "Invalid location"
           loopGame board turn
-    Nothing -> do
-      putStrLn "Invalid location"
-      loopGame board turn
+         )
+     False -> do
+        putStrLn "No available moves"
+        let wh =  length $ filter (==White) (Map.elems $ unBoard board)
+        let bl =  length $ filter (==Black) (Map.elems $ unBoard board)
+        if (wh == bl) then
+          putStrLn "PAD"
+        else if (wh > bl) then
+                putStrLn "WHITE"
+            else
+                putStrLn "BLACK"
 
 main :: IO ()
 main = do
