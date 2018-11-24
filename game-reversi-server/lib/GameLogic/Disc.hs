@@ -1,7 +1,12 @@
-module GameLogic.Disc where
+module GameLogic.Disc (
+  Disc (White, Black),
+  swap,
+  isBlack,
+  isWhite,
+  ) where
 
-import           Data.Text
-import           GameLogic.Util
+import Data.Text
+import GameLogic.Util
 
 data Disc = White | Black
     deriving (Show, Eq, Ord)
@@ -11,7 +16,8 @@ swap :: Disc -> Disc
 swap White = Black
 swap Black = White
 
-
+isBlack :: Disc -> Bool
 isBlack = (== Black)
-isWhite = not . isBlack
 
+isWhite :: Disc -> Bool
+isWhite = not . isBlack
