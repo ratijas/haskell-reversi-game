@@ -21,6 +21,7 @@ library
                      , GameLogic.Util
                      , GameLogic.Grid
                      , GameLogic.Disc
+                     , GameLogic.Print
   ghc-options:       -Wall -fno-warn-unused-imports
   build-depends:       base
                      , aeson
