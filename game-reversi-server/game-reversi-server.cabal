@@ -18,7 +18,6 @@ library
                      , GameReversiServer.Authentication
                      , GameReversiServer.Authentication.Token
                      , GameReversiServer.Persist
-                     , GameLogic.Util
                      , GameLogic.Grid
                      , GameLogic.Disc
                      , GameLogic.Print

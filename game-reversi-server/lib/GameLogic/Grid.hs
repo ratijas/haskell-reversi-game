@@ -23,7 +23,19 @@ import qualified Data.Map            as Map
 import           Data.Maybe
 import qualified Data.Set            as Set
 import           GameLogic.Disc      (Disc (..), flip')
-import           GameLogic.Util
+
+
+minX :: Int
+minX = 0
+
+maxX :: Int
+maxX = 7
+
+minY :: Int
+minY = 0
+
+maxY :: Int
+maxY = 7
 
 -- | Coordinate system goes from 0 to 7
 -- (x, y)

@@ -31,7 +31,6 @@ import           Servant.API      ( FromHttpApiData, parseUrlPiece )
 
 import qualified GameLogic.Disc as Reversi
 import qualified GameLogic.Grid as Reversi
-import qualified GameLogic.Util as Reversi
 
 -- | 8 rows of board, A to H. Each has 8 columns, 1 to 8.
 newtype Board = Board { unBoard :: [[Int]] }

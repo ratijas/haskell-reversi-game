@@ -9,7 +9,6 @@ import           Data.List       (transpose)
 import           Control.Monad   (forM_)
 import           GameLogic.Disc
 import           GameLogic.Grid
-import           GameLogic.Util
 
 printBoard :: Board -> IO ()
 printBoard (Board b) = do

@@ -55,7 +55,6 @@ import qualified GameReversiServer.Persist                as P
 import qualified GameReversiServer.Authentication.Token   as Token
 import qualified GameLogic.Grid                           as Reversi
 import qualified GameLogic.Disc                           as Reversi
-import qualified GameLogic.Util                           as Reversi
 
 -- | Create a brand new session.
 -- Note that session and username are considered inseparable.
@@ -182,7 +181,6 @@ gameTurn
 gameTurn user location = do
   game' <- liftIO $ P.gameLoad user
   game <- maybe gameNotFound return game'
-
 
   -- Reversi.
 
