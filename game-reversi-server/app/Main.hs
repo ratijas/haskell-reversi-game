@@ -15,12 +15,15 @@ import qualified GameReversiServer.Types          as Types
 import qualified GameReversiServer.Handlers       as Handlers
 import qualified GameReversiServer.Persist        as Persist
 
-import Data.Text (Text)
+import Data.Text (Text, pack, unpack)
 import Data.Monoid ((<>))
 import Control.Applicative ((<$>), (<*>))
 import Options.Applicative
 
-
+import GameLogic.Print
+import GameLogic.Disc
+import GameLogic.Grid
+import GameLogic.Util
 -- * Servant tutorial
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Except (throwError)
@@ -465,12 +468,31 @@ reversiApplication = serveWithContext
 
 
 -- * End of Servant tutorial
+loopGame :: Board -> Disc -> IO ()
+loopGame board turn = do
+  putStrLn "Current board"
+  printBoard board turn
+  putStrLn $ "Current move: " ++ (show turn)
+  nextmove <- getLine
+  case Types.locationToXY $ Types.Location (pack nextmove) of
+    Just coords -> case (updateBoard board turn coords) of
+        Just board' -> do
+          putStrLn "your move is succesfully acepted"
+          putStrLn "________________________________\n"
+          loopGame board' (flip' turn)
+        Nothing -> do
+          putStrLn "Your move was wrong,try again"
+          putStrLn "________________________________\n"
+          loopGame board turn
+    Nothing -> do
+      putStrLn "Invalid location"
+      loopGame board turn
 
 main :: IO ()
 main = do
   config <- parseArguments
   let settings = toWarpSettings config
-  Warp.runSettings settings reversiApplication
+  loopGame initBoard Black
 
 -- | Parse host and port from the command line arguments.
 parseArguments :: IO ServerConfig

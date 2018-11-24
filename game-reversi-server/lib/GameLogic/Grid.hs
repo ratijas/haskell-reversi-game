@@ -18,7 +18,7 @@ import           Control.Applicative
 import           Control.Monad       (guard)
 import           Debug.Trace
 import           Data.List           (any, concat)
-import           Data.Map            (Map, fromList)
+import           Data.Map            (Map, fromList, size)
 import qualified Data.Map            as Map
 import           Data.Maybe
 import qualified Data.Set            as Set
@@ -86,6 +86,10 @@ isOnBoard (x, y)
 -- | Cell at (x, y)
 at :: Board -> Cord -> Maybe Disc
 board `at` pos = Map.lookup pos $ unBoard board
+
+endGame :: Board -> Bool
+endGame b =
+  size (unBoard b) == 64
 
 direction
   :: Cord  -- ^ Origin point
