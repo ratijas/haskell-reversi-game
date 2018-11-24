@@ -1,6 +1,6 @@
 module GameLogic.Disc (
   Disc (White, Black),
-  swap,
+  flip',
   isBlack,
   isWhite,
   ) where
@@ -11,10 +11,10 @@ import GameLogic.Util
 data Disc = White | Black
     deriving (Show, Eq, Ord)
 
--- | Swaps the turn
-swap :: Disc -> Disc
-swap White = Black
-swap Black = White
+-- | Flip the disc
+flip' :: Disc -> Disc
+flip' White = Black
+flip' Black = White
 
 isBlack :: Disc -> Bool
 isBlack = (== Black)
