@@ -449,12 +449,13 @@ reversiServer
   :<|> privateAPI
     where
       privateAPI user =
-        (    Handlers.sessionCheck user
-        :<|> Handlers.sessionList  user
+        (    Handlers.sessionCheck  user
+        :<|> Handlers.sessionList   user
         :<|> Handlers.sessionInvite user
         :<|> Handlers.sessionInvitationReply user Types.Accept
         :<|> Handlers.sessionInvitationReply user Types.Reject
-        :<|> Handlers.gameStatus user
+        :<|> Handlers.gameStatus    user
+        :<|> Handlers.gameTurn      user
         )
 
 

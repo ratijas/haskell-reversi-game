@@ -27,10 +27,31 @@ import qualified Data.Map         as Map
 import           GHC.Generics     (Generic)
 import           Data.Function    ((&))
 import qualified Data.UUID        ( UUID, toString, fromString )
+import           Servant.API      ( FromHttpApiData, parseUrlPiece )
 
--- | 8 rows of board, A to H.
+import qualified GameLogic.Disc as Reversi
+import qualified GameLogic.Grid as Reversi
+import qualified GameLogic.Util as Reversi
+
+-- | 8 rows of board, A to H. Each has 8 columns, 1 to 8.
 newtype Board = Board { unBoard :: [[Int]] }
   deriving (Show, Eq, FromJSON, ToJSON, Generic)
+
+
+-- boardToGameLogic :: Board -> Reversi.Board
+-- boardToGameLogic board =
+
+boardFromGameLogic :: Reversi.Board -> Board
+boardFromGameLogic rev =
+  Board $ [row y | y <- [Reversi.minY..Reversi.maxY]]
+  where
+    row y = [cell y x | x <- [Reversi.minX..Reversi.maxX]]
+    cell y x= fromDisc $ rev `Reversi.at` (x, y)
+
+    fromDisc :: Maybe Reversi.Disc -> Int
+    fromDisc Nothing = 0
+    fromDisc (Just Reversi.White) = 1
+    fromDisc (Just Reversi.Black) = -1
 
 
 -- | Error Model
@@ -55,6 +76,14 @@ instance ToJSON User where
 
 -- | Location on the board, described by two charactes: letter and digit
 newtype Location = Location Text deriving (Show, Eq, FromJSON, ToJSON, Generic)
+
+instance FromHttpApiData Location where
+  parseUrlPiece text =
+    let loc = Location text
+      in case (locationToXY loc) of
+        Just _ -> Right loc
+        Nothing -> Left text
+
 
 -- | Location like "E2" to pair of (x, y) integers, where x and y are both in range [0..7]
 locationToXY :: Location -> Maybe (Int, Int)
@@ -188,6 +217,15 @@ instance FromJSON ResponseGameStatusPlayers where
   parseJSON = genericParseJSON (removeFieldLabelPrefix "responseGameStatusPlayers_")
 instance ToJSON   ResponseGameStatusPlayers where
   toJSON    = genericToJSON    (removeFieldLabelPrefix "responseGameStatusPlayers_")
+
+
+data ResponseGameTurn = ResponseGameTurn
+  { responseGameTurn_flipped :: UniqueLocations
+  } deriving (Show, Eq, Generic)
+instance FromJSON ResponseGameTurn where
+  parseJSON = genericParseJSON (removeFieldLabelPrefix "responseGameTurn_")
+instance ToJSON   ResponseGameTurn where
+  toJSON    = genericToJSON    (removeFieldLabelPrefix "responseGameTurn_")
 
 
 -- Remove a field label prefix during JSON parsing.

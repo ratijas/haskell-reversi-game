@@ -53,6 +53,9 @@ import Servant.Server.Experimental.Auth ( AuthHandler
 import qualified GameReversiServer.Types                  as Types
 import qualified GameReversiServer.Persist                as P
 import qualified GameReversiServer.Authentication.Token   as Token
+import qualified GameLogic.Grid                           as Reversi
+import qualified GameLogic.Disc                           as Reversi
+import qualified GameLogic.Util                           as Reversi
 
 -- | Create a brand new session.
 -- Note that session and username are considered inseparable.
@@ -163,10 +166,28 @@ sessionInvitationReply user reply other'name = do
 
 
 gameStatus :: P.User -> Handler Types.ResponseGameStatus
-gameStatus = error "..."
+gameStatus user = do
+  game' <- liftIO $ P.gameLoad user
+  game <- maybe gameNotFound return game'
+  return game
 
-gameTurn :: ()
-gameTurn = ()
+gameNotFound :: Handler a
+gameNotFound = throwError $ err404
+  { errBody = "Game not found" }
+
+gameTurn
+  :: P.User         -- ^ Authenticated user
+  -> Types.Location -- ^ Location
+  -> Handler Types.ResponseGameTurn
+gameTurn user location = do
+  game' <- liftIO $ P.gameLoad user
+  game <- maybe gameNotFound return game'
+
+
+  -- Reversi.
+
+  return $ Types.ResponseGameTurn $ Types.UniqueLocations []
+
 
 gameSurrender :: ()
 gameSurrender = ()

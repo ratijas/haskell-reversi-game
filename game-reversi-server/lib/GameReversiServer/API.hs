@@ -51,9 +51,9 @@ type GameReversiServerAPI
         :<|> "session" :> "invitation" :> "accept" :> Capture "username" Text :> Post '[JSON] NoContent -- 'POST /session/invitation/accept/{username}' route
         :<|> "session" :> "invitation" :> "reject" :> Capture "username" Text :> Post '[JSON] NoContent -- 'POST /session/invitation/reject/{username}' route
         :<|> "game" :> "status" :> Get '[JSON] ResponseGameStatus      -- 'GET /game/status' route
+        :<|> "game" :> "turn" :> Capture "location" Location :> Post '[JSON] ResponseGameTurn -- 'POST /game/turn/{location}' route
         )
     -- :<|> "game" :> "surrender" :> Verb 'POST 200 '[JSON] () -- 'gameSurrenderPost' route
-    -- :<|> "game" :> "turn" :> Capture "location" Text :> Verb 'POST 200 '[JSON] Inline_response_200_4 -- 'gameTurnLocationPost' route
 
 
 -- | Server or client configuration, specifying the host and port to query or serve on.

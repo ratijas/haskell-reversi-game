@@ -20,6 +20,7 @@ module GameReversiServer.Persist
   , invitationReject
   , waitInvitation
   , gameInit
+  , gameLoad
   ) where
 
 import           Data.Maybe             ( catMaybes, isJust )
@@ -316,3 +317,14 @@ gameInit p1 p2 = do
     _ <- R.hset infoK "board"   ""
 
     return ()
+
+gameLoad :: User -> IO (Maybe Types.ResponseGameStatus)
+gameLoad user = do
+  let user't = userToTypes user
+  return $ Just $ Types.ResponseGameStatus
+    { Types.responseGameStatus_status = Types.Turn
+    , Types.responseGameStatus_players = Types.ResponseGameStatusPlayers user't user't
+    , Types.responseGameStatus_board = Types.Board [[]]
+    , Types.responseGameStatus_history = Types.UniqueLocations []
+    , Types.responseGameStatus_available = Types.UniqueLocations []
+    }
