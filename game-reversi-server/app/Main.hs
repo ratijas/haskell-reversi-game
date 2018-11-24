@@ -466,32 +466,31 @@ reversiApplication = serveWithContext
   Auth.reversiServerContext
   reversiServer
 
-
 -- * End of Servant tutorial
-loopGame :: Board -> Disc -> IO ()
-loopGame board turn = do
+loopGame :: Int -> Board -> Disc -> IO ()
+loopGame num board turn = do
   putStrLn "Current board"
-  printBoard board turn
+  printBoard num board turn
   putStrLn $ "Current move: " ++ (show turn)
   nextmove <- getLine
-  let avail = not . null ((allValidMoves board Black) ++ (allValidMoves board White))
-  case (avail) of
-    True -> do
-      (case Types.locationToXY $ Types.Location (pack nextmove) of
-        Just coords -> case (updateBoard board turn coords) of
+  let avail = not $ null ((allValidMoves num board Black) ++ (allValidMoves num board White))
+  if avail
+    then do
+      case Types.locationToXY $ Types.Location (pack nextmove) of
+        Just coords -> case (updateBoard num board turn coords) of
             Just board' -> do
               putStrLn "your move is succesfully acepted"
               putStrLn "________________________________\n"
-              loopGame board' (flip' turn)
+              loopGame num board' (flip' turn)
             Nothing -> do
               putStrLn "Your move was wrong,try again"
               putStrLn "________________________________\n"
-              loopGame board turn
+              loopGame num board turn
         Nothing -> do
           putStrLn "Invalid location"
-          loopGame board turn
-         )
-     False -> do
+          loopGame num board turn
+
+    else do
         putStrLn "No available moves"
         let wh =  length $ filter (==White) (Map.elems $ unBoard board)
         let bl =  length $ filter (==Black) (Map.elems $ unBoard board)
@@ -506,7 +505,12 @@ main :: IO ()
 main = do
   config <- parseArguments
   let settings = toWarpSettings config
-  loopGame initBoard Black
+  putStrLn "Write size of board"
+  str <- getLine
+  let num = read str - 1
+
+  loopGame num (initBoard num) Black
+
 
 -- | Parse host and port from the command line arguments.
 parseArguments :: IO ServerConfig

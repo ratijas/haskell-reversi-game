@@ -10,37 +10,43 @@ import           Control.Monad   (forM_)
 import           GameLogic.Disc
 import           GameLogic.Grid
 import           GameLogic.Util
+import           Text.Printf
 
-printBoard :: Board -> Disc -> IO ()
-printBoard b turn = do
-  putStrLn " |a b c d e f g h|"
-  putStrLn "-+---------------+-"
-  forM_ [minY..maxY] printLine
-  putStrLn "-+---------------+-"
-  putStrLn " |a b c d e f g h|"
+letters :: String
+letters = "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"
 
+printBoard :: Int -> Board -> Disc -> IO ()
+printBoard num b turn = do
+  putStrLn header
+  putStrLn ruler
+  forM_ [minY..num] printLine
+  putStrLn ruler
+  putStrLn header
 
   where
+    header = "   |" ++ (take (num * 2 + 1) letters) ++ "|"
+    ruler  = "---+" ++ (concat $ take (num * 2 + 1) $ repeat "-") ++ "+---"
+
     printLine :: Int -> IO ()
     printLine y = do
       let y' = y + 1
-      putStr (show y')
+      putStr (printf "% 3d" y')
       putStr "|"
-      let (spaces :: [String]) = replicate (maxX - minX) " "
+      let (spaces :: [String]) = replicate (num - minX) " "
       let (items :: [String]) = (concat $ transpose [cells y, spaces])
       forM_ items putStr
       putStr "|"
-      putStr (show y')
+      putStr (printf "% 3d" y')
       putStrLn ""
 
 
     cells :: Int -> [String]
     cells y =
-      map (discToStr . cellAt y) [minX..maxX]
+      map (discToStr . cellAt y) [minX..num]
 
     cellAt :: Int -> Int -> Either () (Maybe Disc)
     cellAt y x =
-      if (x, y) `elem` (allValidMoves b turn)
+      if (x, y) `elem` (allValidMoves num b turn)
         then (Left ())
         else Right $ b `at` (x, y)
 

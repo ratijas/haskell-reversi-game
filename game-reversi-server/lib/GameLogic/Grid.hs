@@ -34,13 +34,14 @@ newtype Board = Board
   } deriving (Show, Eq)
 
 -- | Initial position of discs on the board.
-initBoard :: Board
-initBoard = Board $ Map.fromList
-  [((3, 3), White),
-   ((4, 4), White),
-   ((3, 4), Black),
-   ((4, 3), Black)]
+initBoard :: Int -> Board
+initBoard num = Board $ Map.fromList
+  [((half,       half),       White),
+   ((half + 1,   half + 1),   White),
+   ((half,       half + 1),   Black),
+   ((half + 1,   half),       Black)]
 
+  where half = num `div` 2
 -- | Orientation of the line
 -- whether it is North, south east, west, south-east, etc
 -- The order is important as it matches with the adjacent square list
@@ -59,8 +60,8 @@ dirToCord W  = (-1, 0) :: Cord
 dirToCord NW = (-1, -1) :: Cord
 
 -- | All possible coordinates on the board.
-allCordinates :: [Cord]
-allCordinates = (,) <$> [minX..maxX] <*> [minY..maxY]
+allCordinates :: Int-> [Cord]
+allCordinates num = (,) <$> [minX..num] <*> [minY..num]
 
 -- [Relative] Moore neighborhood without the origin point (0, 0).
 mooreNeighborhood' :: [Cord]
@@ -74,22 +75,22 @@ mooreNeighborhood pos =
 
 -- Moore neighborhood without the origin point and points that lie outside of
 -- the game board boundaries.
-mooreNeighborhoodOnBoard :: Cord -> [Cord]
-mooreNeighborhoodOnBoard = filter isOnBoard . mooreNeighborhood
+mooreNeighborhoodOnBoard :: Int-> Cord -> [Cord]
+mooreNeighborhoodOnBoard num = filter (isOnBoard num). mooreNeighborhood
 
 -- | Predicate to test whether a given coordinate lies within game board boundaries.
-isOnBoard :: Cord -> Bool
-isOnBoard (x, y)
-  =  x >= minX && x <= maxX
-  && y >= minY && y <= maxY
+isOnBoard :: Int -> Cord -> Bool
+isOnBoard num (x, y)
+  =  x >= minX && x <= num
+  && y >= minY && y <= num
 
 -- | Cell at (x, y)
 at :: Board -> Cord -> Maybe Disc
 board `at` pos = Map.lookup pos $ unBoard board
 
-endGame :: Board -> Bool
-endGame b =
-  size (unBoard b) == 64
+endGame :: Int -> Board -> Bool
+endGame num b =
+  size (unBoard b) == num*num
 
 direction
   :: Cord  -- ^ Origin point
@@ -109,10 +110,10 @@ direction _ _ = error "Invalid direction"
 -- | A move is valid if the cord is empty and it satisfies 2 requirements:
 --   1. there is an adjacent opponent's disc
 --   2. it forms a sandwich with opponent's disc inside
-isValidMove :: Board -> Disc -> Cord -> Bool
-isValidMove board turn pos
+isValidMove :: Int -> Board -> Disc -> Cord -> Bool
+isValidMove num board turn pos
   =  (isEmptyCell board pos)
-  && (not . null $ discsThatWillBeFlipped board turn pos)
+  && (not . null $ discsThatWillBeFlipped num board turn pos)
 
 -- | Is cell at given coordinate is empty?
 isEmptyCell :: Board -> Cord -> Bool
@@ -135,29 +136,30 @@ isOpponent's board turn pos =
 --
 -- Empty result indicates that such move is invalid.
 discsThatWillBeFlipped
-  :: Board -- ^ Game board
+  :: Int
+  -> Board -- ^ Game board
   -> Disc  -- ^ Player who wants to put a disc here
   -> Cord  -- ^ Coordinate at which player wants to put a disc
   -> [Cord]
-discsThatWillBeFlipped board turn pos = do
+discsThatWillBeFlipped num board turn pos = do
   guard $ isEmptyCell board pos
-  concat $ map (discsThatWillBeFlippedInDirection board turn pos) directions
+  concat $ map (discsThatWillBeFlippedInDirection) directions
 
   where
     directions :: [Direction]
-    directions = map (direction pos) (mooreNeighborhoodOnBoard pos)
+    directions  = map (direction pos) (mooreNeighborhoodOnBoard num pos)
 
-    discsThatWillBeFlippedInDirection :: Board -> Disc -> Cord -> Direction -> [Cord]
-    discsThatWillBeFlippedInDirection board' turn' pos' dir = do
-      let cells = drop 1 $ line pos' dir
-          opp = isOpponent's board' turn'
+    discsThatWillBeFlippedInDirection :: Direction -> [Cord]
+    discsThatWillBeFlippedInDirection  dir = do
+      let cells = drop 1 $ line num pos dir
+          opp = isOpponent's board  turn
       (end :: Cord) <- take 1 $ dropWhile opp cells
-      guard $ isSelf board' turn' end
+      guard $ isSelf board turn end
       takeWhile opp cells
 
-updateBoard :: Board -> Disc -> Cord -> Maybe Board
-updateBoard board turn pos = do
-  coords <- case discsThatWillBeFlipped board turn pos of
+updateBoard :: Int -> Board -> Disc -> Cord -> Maybe Board
+updateBoard num board turn pos = do
+  coords <- case discsThatWillBeFlipped num board turn pos of
     [] -> Nothing
     xs -> Just xs
   guard $ not (null coords)
@@ -165,11 +167,6 @@ updateBoard board turn pos = do
   -- Map.union prefers left argument when duplicate keys are encountered
   return $ Board $ Map.union (fromList updates) (unBoard board)
 
--- | Returns the sequence of cells from fist position to second position
--- including the start and end
-between :: Cord -> Cord -> [Cord]
-between pos1 pos2 =
-  pos2 : (takeWhile (/= pos2) $ line pos1 $ direction pos1 pos2)
 
 -- | impl for Cord
 cordPlus :: Cord -> Cord -> Cord
@@ -177,23 +174,23 @@ cordPlus :: Cord -> Cord -> Cord
 
 
 -- | A sequence of cells from cord in direction, including origin coordinate.
-line :: Cord -> Direction -> [Cord]
-line pos d = l
+line :: Int-> Cord -> Direction -> [Cord]
+line num pos d = l
   where
-    l = takeWhile isOnBoard $ iterate (cordPlus $ dirToCord d) pos
+    l = takeWhile (isOnBoard num) $ iterate (cordPlus $ dirToCord d) pos
 
 -- | All possible directions.
 allDirections :: [Direction]
 allDirections = toEnum <$> [0..7::Int]
 
 -- | Get all valid moves
-allValidMoves :: Board -> Disc -> [Cord]
-allValidMoves board turn = filter is_valid empties
+allValidMoves :: Int -> Board -> Disc -> [Cord]
+allValidMoves num board turn = filter is_valid empties
   where
-    is_valid = isValidMove board turn
+    is_valid = isValidMove num board turn
 
     empties :: [Cord]
     empties = Set.toList $ Set.difference allSet filled
       where
-        allSet = Set.fromList allCordinates
+        allSet = Set.fromList (allCordinates num)
         filled = Set.fromList (fst <$> Map.toList (unBoard board))
